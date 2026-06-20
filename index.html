@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ConectaOn · Central de Aplicativos</title>
+<meta name="description" content="Baixe a versao mais recente dos aplicativos da ConectaOn, para Windows e Mac.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --azul:#1a0a5e;
+    --azul-2:#250d7a;
+    --roxo:#7b2ff7;
+    --laranja:#ff6b35;
+    --tinta:#0e0726;
+    --papel:#f6f5fb;
+    --branco:#ffffff;
+    --cinza:#6b6685;
+    --linha:rgba(123,47,247,.14);
+    --ok:#1f9d57;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:'Inter',system-ui,sans-serif;
+    color:var(--tinta);
+    background:var(--papel);
+    line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1040px;margin:0 auto;padding:0 24px}
+
+  /* ---------- topo ---------- */
+  header{
+    position:relative;overflow:hidden;
+    background:
+      radial-gradient(1200px 480px at 78% -120px, rgba(255,107,53,.30), transparent 60%),
+      radial-gradient(900px 420px at 10% -80px, rgba(123,47,247,.55), transparent 60%),
+      linear-gradient(160deg, var(--azul) 0%, var(--azul-2) 60%, #160955 100%);
+    color:#fff;
+    padding:34px 0 92px;
+  }
+  /* malha de conexao (assinatura: "conecta on") */
+  header .malha{position:absolute;inset:0;opacity:.5;pointer-events:none}
+  .topbar{display:flex;align-items:center;justify-content:space-between;position:relative;z-index:2}
+  .marca{display:flex;align-items:center;gap:12px;font-family:'Space Grotesk';font-weight:700;font-size:20px;letter-spacing:.2px}
+  .logo{width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,var(--laranja),#ff9466);display:grid;place-items:center;color:#fff;font-weight:700;box-shadow:0 6px 18px rgba(255,107,53,.4)}
+  .marca b{font-weight:700}
+  .marca span{font-weight:500;opacity:.7;font-size:13px;font-family:'Inter'}
+  .pill{font-size:12.5px;font-weight:500;color:#e9e4ff;border:1px solid rgba(255,255,255,.22);padding:7px 13px;border-radius:999px;backdrop-filter:blur(6px)}
+
+  .hero{position:relative;z-index:2;margin-top:48px;max-width:680px}
+  .eyebrow{font-family:'Space Grotesk';text-transform:uppercase;letter-spacing:3px;font-size:12px;font-weight:600;color:#ffb497;margin-bottom:16px}
+  .hero h1{font-family:'Space Grotesk';font-weight:700;font-size:clamp(30px,5vw,46px);line-height:1.06;letter-spacing:-.5px}
+  .hero h1 em{font-style:normal;color:#ffcab3}
+  .hero p{margin-top:16px;font-size:16.5px;color:#d9d2f5;max-width:560px}
+
+  /* ---------- cartoes ---------- */
+  main{padding:0 0 72px}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-top:-56px;position:relative;z-index:3}
+  @media(max-width:760px){.grid{grid-template-columns:1fr;margin-top:-48px}}
+
+  .card{
+    background:var(--branco);border:1px solid var(--linha);border-radius:18px;padding:26px;
+    box-shadow:0 18px 50px -28px rgba(26,10,94,.5);
+    display:flex;flex-direction:column;
+    opacity:0;transform:translateY(14px);
+  }
+  .card.in{animation:rise .6s cubic-bezier(.2,.7,.2,1) forwards}
+  .card:nth-child(2){animation-delay:.08s}
+  @keyframes rise{to{opacity:1;transform:none}}
+
+  .card .ico{width:46px;height:46px;border-radius:12px;display:grid;place-items:center;color:#fff;font-family:'Space Grotesk';font-weight:700;font-size:19px;margin-bottom:16px}
+  .ico.sv{background:linear-gradient(135deg,#7b2ff7,#a06bff)}
+  .ico.es{background:linear-gradient(135deg,#ff6b35,#ff9466)}
+
+  .card h2{font-family:'Space Grotesk';font-weight:600;font-size:22px;letter-spacing:-.2px;display:flex;align-items:center;gap:10px}
+  .ver{font-family:'Space Grotesk';font-size:12px;font-weight:600;color:var(--roxo);background:rgba(123,47,247,.1);padding:3px 9px;border-radius:999px;letter-spacing:.3px}
+  .card .desc{color:var(--cinza);font-size:14.5px;margin:8px 0 18px}
+
+  .botoes{display:flex;gap:10px;flex-wrap:wrap;margin-top:auto}
+  .dl{flex:1;min-width:150px;display:flex;align-items:center;justify-content:center;gap:9px;text-decoration:none;font-weight:600;font-size:14.5px;padding:13px 14px;border-radius:11px;transition:transform .12s ease,box-shadow .12s ease,background .12s ease}
+  .dl svg{width:17px;height:17px;flex:none}
+  .dl.win{background:var(--tinta);color:#fff}
+  .dl.win:hover{transform:translateY(-2px);box-shadow:0 10px 22px -10px rgba(14,7,38,.7)}
+  .dl.mac{background:#fff;color:var(--tinta);border:1.5px solid var(--linha)}
+  .dl.mac:hover{transform:translateY(-2px);border-color:var(--roxo);box-shadow:0 10px 22px -12px rgba(123,47,247,.5)}
+  .sub{font-size:11.5px;font-weight:500;opacity:.6;display:block;margin-top:1px}
+
+  .nota{margin-top:16px;border-top:1px solid var(--linha);padding-top:13px;font-size:12.5px;color:var(--cinza)}
+  .nota b{color:var(--tinta);font-weight:600}
+
+  /* ---------- instalar ---------- */
+  .ajuda{margin-top:36px;background:#fff;border:1px solid var(--linha);border-radius:18px;padding:26px}
+  .ajuda h3{font-family:'Space Grotesk';font-size:17px;font-weight:600;margin-bottom:14px}
+  .passos{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  @media(max-width:680px){.passos{grid-template-columns:1fr}}
+  .passo h4{font-size:13.5px;font-weight:600;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+  .passo h4 .os{width:22px;height:22px;border-radius:6px;display:grid;place-items:center;background:var(--papel)}
+  .passo p{font-size:13px;color:var(--cinza)}
+  .passo p b{color:var(--tinta);font-weight:600}
+
+  footer{padding:30px 0 50px;text-align:center;color:var(--cinza);font-size:12.5px}
+  footer .marca-f{font-family:'Space Grotesk';font-weight:600;color:var(--tinta)}
+</style>
+</head>
+<body>
+
+<header>
+  <svg class="malha" preserveAspectRatio="none" viewBox="0 0 1040 360" aria-hidden="true">
+    <g stroke="rgba(255,255,255,.18)" stroke-width="1" fill="none">
+      <path d="M120,40 L320,150 L210,300 M320,150 L560,90 L760,210 M560,90 L520,260 M760,210 L940,130 M760,210 L880,330"/>
+    </g>
+    <g fill="rgba(255,180,151,.85)">
+      <circle cx="120" cy="40" r="3.5"/><circle cx="320" cy="150" r="4.5"/><circle cx="210" cy="300" r="3"/>
+      <circle cx="560" cy="90" r="4"/><circle cx="760" cy="210" r="4.5"/><circle cx="520" cy="260" r="3"/>
+      <circle cx="940" cy="130" r="3.5"/><circle cx="880" cy="330" r="3"/>
+    </g>
+  </svg>
+
+  <div class="wrap">
+    <div class="topbar">
+      <div class="marca">
+        <span class="logo">C</span>
+        <div>ConectaOn <span>/ Prime</span></div>
+      </div>
+      <span class="pill">Central de Aplicativos</span>
+    </div>
+
+    <div class="hero">
+      <div class="eyebrow">Sempre a versao mais recente</div>
+      <h1>Seus aplicativos, prontos para baixar em <em>qualquer computador</em>.</h1>
+      <p>Escolha o programa e o sistema. O link sempre entrega a ultima versao publicada, sem precisar de login.</p>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="grid">
+
+    <!-- SintegraView -->
+    <article class="card" id="card-sv">
+      <div class="ico sv">SV</div>
+      <h2>SintegraView <span class="ver" id="ver-sv">versao atual</span></h2>
+      <p class="desc">Leitura, escrituracao e relatorios de arquivos Sintegra. Consolidacao por CNPJ, cupons ECF, dossie tecnico para laudo.</p>
+      <div class="botoes">
+        <a class="dl win" id="sv-win" href="#" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 5.5 10.5 4.4v7.1H3V5.5Zm0 13L10.5 19.6v-7.1H3v6Zm8.5 1.2L21 21V12.5h-9.5v7.2Zm0-15.4v7.2H21V3l-9.5 1.3Z"/></svg>
+          <span>Windows<span class="sub">arquivo .exe</span></span>
+        </a>
+        <a class="dl mac" id="sv-mac" href="#" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.4 12.7c0-2.2 1.8-3.3 1.9-3.3-1-1.5-2.6-1.7-3.2-1.7-1.4-.1-2.6.8-3.3.8-.7 0-1.7-.8-2.8-.8-1.5 0-2.8.8-3.6 2.2-1.5 2.7-.4 6.6 1.1 8.8.7 1 1.6 2.2 2.7 2.2 1.1 0 1.5-.7 2.8-.7 1.3 0 1.6.7 2.8.7 1.2 0 1.9-1.1 2.6-2.1.8-1.2 1.2-2.3 1.2-2.4-.1 0-2.3-.9-2.3-3.5Zm-2.2-6.4c.6-.7 1-1.7.9-2.7-.9 0-1.9.6-2.5 1.3-.5.6-1 1.6-.9 2.6 1 .1 2-.5 2.5-1.2Z"/></svg>
+          <span>Mac<span class="sub">arquivo .app</span></span>
+        </a>
+      </div>
+      <div class="nota"><b>Primeira vez no Mac:</b> abra com o botao direito, depois Abrir, e confirme. No Windows, se aparecer aviso, clique em Mais informacoes e Executar assim mesmo.</div>
+    </article>
+
+    <!-- eSocialView -->
+    <article class="card" id="card-es">
+      <div class="ico es">eS</div>
+      <h2>eSocialView <span class="ver" id="ver-es">versao atual</span></h2>
+      <p class="desc">Leitura de XML do eSocial e relatorios. Folha e rubricas, bases INSS e FGTS, movimentacao, trabalhadores e dossie.</p>
+      <div class="botoes">
+        <a class="dl win" id="es-win" href="#" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 5.5 10.5 4.4v7.1H3V5.5Zm0 13L10.5 19.6v-7.1H3v6Zm8.5 1.2L21 21V12.5h-9.5v7.2Zm0-15.4v7.2H21V3l-9.5 1.3Z"/></svg>
+          <span>Windows<span class="sub">arquivo .exe</span></span>
+        </a>
+        <a class="dl mac" id="es-mac" href="#" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.4 12.7c0-2.2 1.8-3.3 1.9-3.3-1-1.5-2.6-1.7-3.2-1.7-1.4-.1-2.6.8-3.3.8-.7 0-1.7-.8-2.8-.8-1.5 0-2.8.8-3.6 2.2-1.5 2.7-.4 6.6 1.1 8.8.7 1 1.6 2.2 2.7 2.2 1.1 0 1.5-.7 2.8-.7 1.3 0 1.6.7 2.8.7 1.2 0 1.9-1.1 2.6-2.1.8-1.2 1.2-2.3 1.2-2.4-.1 0-2.3-.9-2.3-3.5Zm-2.2-6.4c.6-.7 1-1.7.9-2.7-.9 0-1.9.6-2.5 1.3-.5.6-1 1.6-.9 2.6 1 .1 2-.5 2.5-1.2Z"/></svg>
+          <span>Mac<span class="sub">arquivo .app</span></span>
+        </a>
+      </div>
+      <div class="nota"><b>Primeira vez no Mac:</b> abra com o botao direito, depois Abrir, e confirme. No Windows, se aparecer aviso, clique em Mais informacoes e Executar assim mesmo.</div>
+    </article>
+
+  </div>
+
+  <section class="ajuda">
+    <h3>Como instalar</h3>
+    <div class="passos">
+      <div class="passo">
+        <h4><span class="os">🪟</span> No Windows</h4>
+        <p>Baixe o arquivo <b>.exe</b> e clique para abrir. Se o Windows mostrar um aviso azul, clique em <b>Mais informacoes</b> e depois <b>Executar assim mesmo</b>. Acontece porque o programa e interno e nao tem assinatura paga.</p>
+      </div>
+      <div class="passo">
+        <h4><span class="os"></span> No Mac</h4>
+        <p>Baixe o <b>.app</b> (vem em .zip, de dois cliques para descompactar). Na primeira vez, clique nele com o <b>botao direito</b>, escolha <b>Abrir</b> e confirme. Depois disso ele abre normal.</p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="wrap">
+  <p><span class="marca-f">ConectaOn</span> · Aplicativos internos de conformidade fiscal e trabalhista.<br>
+  Os links acima sempre apontam para a versao mais recente publicada.</p>
+</footer>
+
+<script>
+  // ===================================================================
+  //  CONFIG: enderecos de download. Cada link aponta sempre para a
+  //  versao MAIS RECENTE. Basta publicar uma nova versao que estes
+  //  links passam a entregar a nova automaticamente (nao muda aqui).
+  // ===================================================================
+  const BASE = "https://github.com/Thiago2568/conectaon-apps/releases/latest/download";
+  const LINKS = {
+    "sv-win": BASE + "/SintegraView-Windows.exe",
+    "sv-mac": BASE + "/SintegraView-macOS.zip",
+    "es-win": BASE + "/eSocialView-Windows.exe",
+    "es-mac": BASE + "/eSocialView-macOS.zip",
+  };
+  for (const id in LINKS){ const a=document.getElementById(id); if(a) a.href=LINKS[id]; }
+
+  // mostra o numero da versao mais recente (opcional, busca publica)
+  async function mostrarVersao(){
+    try{
+      const r = await fetch("https://api.github.com/repos/Thiago2568/conectaon-apps/releases/latest");
+      if(!r.ok) return;
+      const d = await r.json();
+      const tag = d.tag_name || "";
+      if(tag){
+        const e1=document.getElementById("ver-sv"), e2=document.getElementById("ver-es");
+        if(e1) e1.textContent = tag;
+        if(e2) e2.textContent = tag;
+      }
+    }catch(e){ /* silencioso: os botoes funcionam de qualquer forma */ }
+  }
+  mostrarVersao();
+
+  // animacao de entrada dos cartoes
+  if(matchMedia("(prefers-reduced-motion: no-preference)").matches){
+    document.getElementById("card-sv").classList.add("in");
+    document.getElementById("card-es").classList.add("in");
+  } else {
+    document.querySelectorAll(".card").forEach(c=>c.style.opacity=1);
+  }
+</script>
+</body>
+</html>
