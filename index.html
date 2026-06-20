@@ -200,34 +200,34 @@
 
 <script>
   // ===================================================================
-  //  CONFIG: enderecos de download. Cada link aponta sempre para a
-  //  versao MAIS RECENTE. Basta publicar uma nova versao que estes
-  //  links passam a entregar a nova automaticamente (nao muda aqui).
+  //  CONFIG: enderecos de download. Cada programa tem um "release" fixo
+  //  no repositorio conectaon-apps (tag sintegraview / esocialview) que
+  //  e atualizado a cada publicacao. O link nunca muda; o conteudo sim.
   // ===================================================================
-  const BASE = "https://github.com/Thiago2568/conectaon-apps/releases/latest/download";
+  const REPO = "Thiago2568/conectaon-apps";
+  const BASE = "https://github.com/" + REPO + "/releases/download";
   const LINKS = {
-    "sv-win": BASE + "/SintegraView-Windows.exe",
-    "sv-mac": BASE + "/SintegraView-macOS.zip",
-    "es-win": BASE + "/eSocialView-Windows.exe",
-    "es-mac": BASE + "/eSocialView-macOS.zip",
+    "sv-win": BASE + "/sintegraview/SintegraView-Windows.exe",
+    "sv-mac": BASE + "/sintegraview/SintegraView-macOS.zip",
+    "es-win": BASE + "/esocialview/eSocialView-Windows.exe",
+    "es-mac": BASE + "/esocialview/eSocialView-macOS.zip",
   };
   for (const id in LINKS){ const a=document.getElementById(id); if(a) a.href=LINKS[id]; }
 
-  // mostra o numero da versao mais recente (opcional, busca publica)
-  async function mostrarVersao(){
+  // mostra o numero da versao de cada programa (busca publica, opcional)
+  async function versao(tag, elId){
     try{
-      const r = await fetch("https://api.github.com/repos/Thiago2568/conectaon-apps/releases/latest");
+      const r = await fetch("https://api.github.com/repos/" + REPO + "/releases/tags/" + tag);
       if(!r.ok) return;
       const d = await r.json();
-      const tag = d.tag_name || "";
-      if(tag){
-        const e1=document.getElementById("ver-sv"), e2=document.getElementById("ver-es");
-        if(e1) e1.textContent = tag;
-        if(e2) e2.textContent = tag;
-      }
+      const nome = d.name || d.tag_name || "";
+      const m = nome.match(/v\d+\.\d+\.\d+/);
+      const el = document.getElementById(elId);
+      if(el && (m || nome)) el.textContent = m ? m[0] : nome;
     }catch(e){ /* silencioso: os botoes funcionam de qualquer forma */ }
   }
-  mostrarVersao();
+  versao("sintegraview", "ver-sv");
+  versao("esocialview", "ver-es");
 
   // animacao de entrada dos cartoes
   if(matchMedia("(prefers-reduced-motion: no-preference)").matches){
