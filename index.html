@@ -70,11 +70,13 @@
   }
   .card.in{animation:rise .6s cubic-bezier(.2,.7,.2,1) forwards}
   .card:nth-child(2){animation-delay:.08s}
+  .card:nth-child(3){animation-delay:.16s}
   @keyframes rise{to{opacity:1;transform:none}}
 
   .card .ico{width:46px;height:46px;border-radius:12px;display:grid;place-items:center;color:#fff;font-family:'Space Grotesk';font-weight:700;font-size:19px;margin-bottom:16px}
   .ico.sv{background:linear-gradient(135deg,#7b2ff7,#a06bff)}
   .ico.es{background:linear-gradient(135deg,#ff6b35,#ff9466)}
+  .ico.cp{background:linear-gradient(135deg,#2E7D32,#54c25a)}
 
   .card h2{font-family:'Space Grotesk';font-weight:600;font-size:22px;letter-spacing:-.2px;display:flex;align-items:center;gap:10px}
   .ver{font-family:'Space Grotesk';font-size:12px;font-weight:600;color:var(--roxo);background:rgba(123,47,247,.1);padding:3px 9px;border-radius:999px;letter-spacing:.3px}
@@ -176,6 +178,24 @@
       <div class="nota"><b>Primeira vez no Mac:</b> abra com o botao direito, depois Abrir, e confirme. No Windows, se aparecer aviso, clique em Mais informacoes e Executar assim mesmo.</div>
     </article>
 
+    <!-- Coletor Prime -->
+    <article class="card" id="card-cp">
+      <div class="ico cp">CP</div>
+      <h2>Coletor Prime <span class="ver" id="ver-cp">versao atual</span></h2>
+      <p class="desc">Baixa em massa os XML de eventos do eSocial para auditoria. Voce solicita os periodos, ele acompanha a liberacao da Receita e baixa tudo, organizado por cliente.</p>
+      <div class="botoes">
+        <a class="dl win" id="cp-win" href="#" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 5.5 10.5 4.4v7.1H3V5.5Zm0 13L10.5 19.6v-7.1H3v6Zm8.5 1.2L21 21V12.5h-9.5v7.2Zm0-15.4v7.2H21V3l-9.5 1.3Z"/></svg>
+          <span>Windows<span class="sub">arquivo .exe</span></span>
+        </a>
+        <a class="dl mac" id="cp-mac" href="#" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.4 12.7c0-2.2 1.8-3.3 1.9-3.3-1-1.5-2.6-1.7-3.2-1.7-1.4-.1-2.6.8-3.3.8-.7 0-1.7-.8-2.8-.8-1.5 0-2.8.8-3.6 2.2-1.5 2.7-.4 6.6 1.1 8.8.7 1 1.6 2.2 2.7 2.2 1.1 0 1.5-.7 2.8-.7 1.3 0 1.6.7 2.8.7 1.2 0 1.9-1.1 2.6-2.1.8-1.2 1.2-2.3 1.2-2.4-.1 0-2.3-.9-2.3-3.5Zm-2.2-6.4c.6-.7 1-1.7.9-2.7-.9 0-1.9.6-2.5 1.3-.5.6-1 1.6-.9 2.6 1 .1 2-.5 2.5-1.2Z"/></svg>
+          <span>Mac<span class="sub">arquivo .app</span></span>
+        </a>
+      </div>
+      <div class="nota"><b>Precisa do Google Chrome</b> instalado nesta maquina; o login no eSocial e feito com o seu certificado. <b>Primeira vez no Mac:</b> abra com o botao direito, depois Abrir, e confirme.</div>
+    </article>
+
   </div>
 
   <section class="ajuda">
@@ -211,6 +231,8 @@
     "sv-mac": BASE + "/sintegraview/SintegraView-macOS.zip",
     "es-win": BASE + "/esocialview/eSocialView-Windows.exe",
     "es-mac": BASE + "/esocialview/eSocialView-macOS.zip",
+    "cp-win": BASE + "/coletorprime/ColetorPrime-Windows.exe",
+    "cp-mac": BASE + "/coletorprime/ColetorPrime-macOS.zip",
   };
   for (const id in LINKS){ const a=document.getElementById(id); if(a) a.href=LINKS[id]; }
 
@@ -228,11 +250,13 @@
   }
   versao("sintegraview", "ver-sv");
   versao("esocialview", "ver-es");
+  versao("coletorprime", "ver-cp");
 
   // animacao de entrada dos cartoes
   if(matchMedia("(prefers-reduced-motion: no-preference)").matches){
     document.getElementById("card-sv").classList.add("in");
     document.getElementById("card-es").classList.add("in");
+    document.getElementById("card-cp").classList.add("in");
   } else {
     document.querySelectorAll(".card").forEach(c=>c.style.opacity=1);
   }
