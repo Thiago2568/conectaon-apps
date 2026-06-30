@@ -166,14 +166,23 @@
   .passo p{font-size:13.5px;color:var(--texto-fraco);line-height:1.55}
   .passo p b{color:var(--texto);font-weight:600}
 
-  /* ============== FOOTER ============== */
-  footer{padding:46px 0 56px;margin-top:46px;border-top:1px solid var(--borda)}
-  .foot{display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap}
-  .foot .fmarca{display:flex;align-items:center;gap:11px}
-  .foot .fmarca svg{width:30px;height:30px}
-  .foot .fmarca b{font-family:var(--ff-disp);font-weight:700;letter-spacing:.05em;font-size:15px;color:var(--navy)}
-  .foot .fmarca span{font-family:var(--ff-mono);font-size:11px;color:var(--texto-fraco);letter-spacing:.06em}
-  .foot .fnote{font-size:12.5px;color:var(--texto-fraco);text-align:right;line-height:1.5;max-width:380px}
+  /* ============== RODAPE COM A CIDADE ============== */
+  footer.cidade{position:relative;overflow:hidden;margin-top:54px;color:#fff;isolation:isolate}
+  .cidade-bg{position:absolute;inset:0;z-index:-2;
+    background:url("cidade.jpg") center 42% / cover no-repeat;
+    filter:grayscale(1) contrast(1.04)}
+  footer.cidade::before{content:"";position:absolute;inset:0;z-index:-1;
+    background:
+      linear-gradient(96deg, rgba(10,31,56,.95) 0%, rgba(14,39,69,.86) 44%, rgba(22,54,91,.6) 100%),
+      linear-gradient(0deg, rgba(10,31,56,.65) 0%, rgba(10,31,56,.05) 55%)}
+  .cidade-in{max-width:1120px;margin:0 auto;padding:70px 28px 56px;display:flex;flex-direction:column;align-items:flex-start}
+  .cidade-marca{display:flex;align-items:center;gap:13px;margin-bottom:28px}
+  .cidade-marca svg{width:46px;height:46px;flex:none;filter:drop-shadow(0 8px 18px rgba(8,22,42,.55))}
+  .cidade-marca b{font-family:var(--ff-disp);font-weight:700;letter-spacing:.06em;font-size:20px;color:#fff;display:block;line-height:1}
+  .cidade-marca span{font-family:var(--ff-mono);font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:rgba(255,255,255,.62)}
+  .cidade-tag{font-family:var(--ff-disp);font-weight:600;font-size:clamp(21px,2.7vw,31px);line-height:1.22;letter-spacing:-.012em;max-width:680px;color:#fff;text-shadow:0 2px 18px rgba(7,20,38,.5)}
+  .cidade-meta{margin-top:30px;padding-top:22px;border-top:1px solid rgba(255,255,255,.18);display:flex;align-items:center;gap:14px;flex-wrap:wrap;font-family:var(--ff-mono);font-size:11.5px;letter-spacing:.05em;color:rgba(255,255,255,.66)}
+  .cidade-meta .sep{width:4px;height:4px;border-radius:50%;background:var(--accent);opacity:.9}
 
   /* ============== RESPONSIVO ============== */
   @media(max-width:880px){
@@ -182,8 +191,8 @@
     .hero-art{max-width:440px;margin-top:4px}
     .grid{grid-template-columns:1fr;margin-top:-86px;gap:18px}
     .passos{grid-template-columns:1fr;gap:20px}
-    .foot{flex-direction:column;align-items:flex-start}
-    .foot .fnote{text-align:left}
+    .cidade-in{padding:52px 18px 44px}
+    .cidade-marca{margin-bottom:22px}
   }
   @media(max-width:560px){
     .wrap{padding:0 18px}
@@ -406,22 +415,28 @@
   </section>
 </main>
 
-<footer class="wrap">
-  <div class="foot">
-    <div class="fmarca">
+<footer class="cidade">
+  <div class="cidade-bg" aria-hidden="true"></div>
+  <div class="cidade-in">
+    <div class="cidade-marca">
       <svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
         <defs><linearGradient id="navyFoot" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2E5F95"/><stop offset="1" stop-color="#11335A"/></linearGradient></defs>
-        <rect width="48" height="48" rx="13" fill="url(#navyFoot)"/>
+        <rect width="48" height="48" rx="13" fill="url(#navyFoot)" stroke="rgba(255,255,255,.1)"/>
         <g fill="#fff"><rect x="9" y="29" width="5.5" height="10" rx="1.8"/><rect x="17" y="24" width="5.5" height="15" rx="1.8"/><rect x="25" y="19" width="5.5" height="20" rx="1.8"/><rect x="33" y="13" width="5.5" height="26" rx="1.8"/></g>
         <path d="M10 31 L19.5 26 L27.5 21 L37 13.5" fill="none" stroke="#FF6B35" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
         <path d="M30.5 14 L37.8 12.6 L37.2 19.8 Z" fill="#FF6B35"/>
       </svg>
       <div>
-        <b>PRIME</b><br>
-        <span>Plataforma ConectaOn</span>
+        <b>PRIME</b>
+        <span>Consultoria</span>
       </div>
     </div>
-    <p class="fnote">Aplicativos internos de conformidade fiscal e trabalhista. Os links acima sempre apontam para a versao mais recente publicada.</p>
+    <p class="cidade-tag">Conformidade fiscal e trabalhista, auditoria e recuperacao de creditos.</p>
+    <div class="cidade-meta">
+      <span>Aplicativos internos</span><span class="sep"></span>
+      <span>Sempre na versao mais recente publicada</span><span class="sep"></span>
+      <span>(31) 99391-2890</span>
+    </div>
   </div>
 </footer>
 
