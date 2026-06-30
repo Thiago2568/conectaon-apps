@@ -73,6 +73,14 @@
   .topbar{position:relative;z-index:3;display:flex;align-items:center;justify-content:space-between;padding-top:6px}
   .marca{display:flex;align-items:center;gap:13px}
   .marca .logo{width:46px;height:46px;flex:none;filter:drop-shadow(0 8px 18px rgba(8,22,42,.5))}
+  /* animacao da logo Prime no carregamento: barras sobem, seta se desenha */
+  .logo .lbar{transform-box:fill-box;transform-origin:bottom;transform:scaleY(0);animation:bar .55s cubic-bezier(.2,.8,.25,1) forwards}
+  .logo .lbar:nth-of-type(1){animation-delay:.35s}
+  .logo .lbar:nth-of-type(2){animation-delay:.45s}
+  .logo .lbar:nth-of-type(3){animation-delay:.55s}
+  .logo .lbar:nth-of-type(4){animation-delay:.65s}
+  .logo .larrow{stroke-dasharray:1;stroke-dashoffset:1;animation:draw .7s cubic-bezier(.6,0,.3,1) .78s forwards}
+  .logo .lhead{opacity:0;transform-box:fill-box;transform-origin:center;transform:scale(.3);animation:pop .42s cubic-bezier(.3,1.5,.5,1) 1.46s forwards}
   .marca-txt{display:flex;flex-direction:column;line-height:1.04}
   .marca-txt .l1{font-family:var(--ff-disp);font-weight:700;font-size:21px;letter-spacing:.06em;color:#fff}
   .marca-txt .l2{font-family:var(--ff-mono);font-size:10.5px;letter-spacing:.22em;color:rgba(255,255,255,.6);text-transform:uppercase;margin-top:2px}
@@ -196,6 +204,9 @@
   @media(prefers-reduced-motion:reduce){
     *{animation:none!important}
     .hero-txt,.card{opacity:1;transform:none}
+    .logo .lbar{transform:scaleY(1)}
+    .logo .larrow{stroke-dashoffset:0}
+    .logo .lhead{opacity:1;transform:scale(1)}
   }
 </style>
 </head>
@@ -216,13 +227,13 @@
           </defs>
           <rect width="48" height="48" rx="13" fill="url(#navyTile)" stroke="rgba(255,255,255,.1)"/>
           <g fill="#fff">
-            <rect x="9" y="29" width="5.5" height="10" rx="1.8"/>
-            <rect x="17" y="24" width="5.5" height="15" rx="1.8"/>
-            <rect x="25" y="19" width="5.5" height="20" rx="1.8"/>
-            <rect x="33" y="13" width="5.5" height="26" rx="1.8"/>
+            <rect class="lbar" x="9" y="29" width="5.5" height="10" rx="1.8"/>
+            <rect class="lbar" x="17" y="24" width="5.5" height="15" rx="1.8"/>
+            <rect class="lbar" x="25" y="19" width="5.5" height="20" rx="1.8"/>
+            <rect class="lbar" x="33" y="13" width="5.5" height="26" rx="1.8"/>
           </g>
-          <path d="M10 31 L19.5 26 L27.5 21 L37 13.5" fill="none" stroke="#FF6B35" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M30.5 14 L37.8 12.6 L37.2 19.8 Z" fill="#FF6B35"/>
+          <path class="larrow" pathLength="1" d="M10 31 L19.5 26 L27.5 21 L37 13.5" fill="none" stroke="#FF6B35" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+          <path class="lhead" d="M30.5 14 L37.8 12.6 L37.2 19.8 Z" fill="#FF6B35"/>
         </svg>
         <div class="marca-txt">
           <span class="l1">PRIME</span>
