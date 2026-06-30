@@ -3,138 +3,301 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ConectaOn · Central de Aplicativos</title>
-<meta name="description" content="Baixe a versao mais recente dos aplicativos da ConectaOn, para Windows e Mac.">
+<title>Prime · Central de Aplicativos</title>
+<meta name="description" content="Ferramentas internas da Prime para auditoria fiscal e trabalhista: SPED, eSocial, recuperacao de creditos e coleta de XML. Sempre na versao mais recente.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' rx='13' fill='%2314375E'/%3E%3Cg fill='%23fff'%3E%3Crect x='9' y='29' width='5.5' height='10' rx='1.8'/%3E%3Crect x='17' y='24' width='5.5' height='15' rx='1.8'/%3E%3Crect x='25' y='19' width='5.5' height='20' rx='1.8'/%3E%3Crect x='33' y='13' width='5.5' height='26' rx='1.8'/%3E%3C/g%3E%3Cpath d='M10 31 L19.5 26 L27.5 21 L37 13.5' fill='none' stroke='%23FF6B35' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M30.5 14 L37.5 12.8 L37 19.5' fill='%23FF6B35'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root{
-    --azul:#1a0a5e;
-    --azul-2:#250d7a;
-    --roxo:#7b2ff7;
-    --laranja:#ff6b35;
-    --tinta:#0e0726;
-    --papel:#f6f5fb;
-    --branco:#ffffff;
-    --cinza:#6b6685;
-    --linha:rgba(123,47,247,.14);
-    --ok:#1f9d57;
+    --navy:#16365B;
+    --navy-2:#0E2745;
+    --navy-ink:#0A1F38;
+    --navy-lt:#2C5C8A;
+    --accent:#FF6B35;
+    --accent-2:#F2581F;
+    --accent-soft:#FF8C5E;
+    --gold:#E8A33D;
+    --blue:#3F86D0;
+    --green:#1F8A6B;
+
+    --texto:#14202E;
+    --texto-fraco:#5E7088;
+    --papel:#F4F7FB;
+    --papel-2:#EBF1F8;
+    --card:#ffffff;
+    --borda:#D8E2EE;
+    --borda-2:#E6EDF5;
+
+    --ff-disp:'Space Grotesk',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    --ff-body:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+    --ff-mono:ui-monospace,'SF Mono',Menlo,Monaco,'Cascadia Code','Courier New',monospace;
+
+    --sombra:0 1px 2px rgba(10,31,56,.05),0 14px 40px -22px rgba(10,31,56,.45);
+    --sombra-hover:0 1px 2px rgba(10,31,56,.06),0 24px 60px -28px rgba(10,31,56,.55);
   }
+
   *{box-sizing:border-box;margin:0;padding:0}
-  html{scroll-behavior:smooth}
+  html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
   body{
-    font-family:'Inter',system-ui,sans-serif;
-    color:var(--tinta);
+    font-family:var(--ff-body);
+    color:var(--texto);
     background:var(--papel);
     line-height:1.55;
     -webkit-font-smoothing:antialiased;
+    text-rendering:optimizeLegibility;
   }
-  .wrap{max-width:1040px;margin:0 auto;padding:0 24px}
+  .wrap{max-width:1120px;margin:0 auto;padding:0 28px}
+  a{color:inherit}
+  ::selection{background:rgba(255,107,53,.22)}
+  :focus-visible{outline:2.5px solid var(--accent);outline-offset:3px;border-radius:4px}
 
-  /* ---------- topo ---------- */
-  header{
-    position:relative;overflow:hidden;
+  /* ============== HERO (navy) ============== */
+  .hero{
+    position:relative;overflow:hidden;color:#fff;
     background:
-      radial-gradient(1200px 480px at 78% -120px, rgba(255,107,53,.30), transparent 60%),
-      radial-gradient(900px 420px at 10% -80px, rgba(123,47,247,.55), transparent 60%),
-      linear-gradient(160deg, var(--azul) 0%, var(--azul-2) 60%, #160955 100%);
-    color:#fff;
-    padding:34px 0 92px;
+      radial-gradient(720px 360px at 88% -40px, rgba(255,107,53,.20), transparent 62%),
+      radial-gradient(900px 520px at 6% 120%, rgba(63,134,208,.20), transparent 60%),
+      linear-gradient(168deg, var(--navy) 0%, var(--navy-2) 52%, var(--navy-ink) 100%);
+    padding:30px 0 150px;
   }
-  /* malha de conexao (assinatura: "conecta on") */
-  header .malha{position:absolute;inset:0;opacity:.5;pointer-events:none}
-  .topbar{display:flex;align-items:center;justify-content:space-between;position:relative;z-index:2}
-  .marca{display:flex;align-items:center;gap:12px;font-family:'Space Grotesk';font-weight:700;font-size:20px;letter-spacing:.2px}
-  .logo{width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,var(--laranja),#ff9466);display:grid;place-items:center;color:#fff;font-weight:700;box-shadow:0 6px 18px rgba(255,107,53,.4)}
-  .marca b{font-weight:700}
-  .marca span{font-weight:500;opacity:.7;font-size:13px;font-family:'Inter'}
-  .pill{font-size:12.5px;font-weight:500;color:#e9e4ff;border:1px solid rgba(255,255,255,.22);padding:7px 13px;border-radius:999px;backdrop-filter:blur(6px)}
+  /* trama de razao fiscal: hairlines tipo livro-razao */
+  .hero .grade{position:absolute;inset:0;opacity:.5;pointer-events:none}
+  .hero .vinheta{position:absolute;inset:0;pointer-events:none;
+    background:radial-gradient(120% 90% at 50% -10%, transparent 60%, rgba(7,20,38,.55) 100%)}
 
-  .hero{position:relative;z-index:2;margin-top:48px;max-width:680px}
-  .eyebrow{font-family:'Space Grotesk';text-transform:uppercase;letter-spacing:3px;font-size:12px;font-weight:600;color:#ffb497;margin-bottom:16px}
-  .hero h1{font-family:'Space Grotesk';font-weight:700;font-size:clamp(30px,5vw,46px);line-height:1.06;letter-spacing:-.5px}
-  .hero h1 em{font-style:normal;color:#ffcab3}
-  .hero p{margin-top:16px;font-size:16.5px;color:#d9d2f5;max-width:560px}
+  /* topo */
+  .topbar{position:relative;z-index:3;display:flex;align-items:center;justify-content:space-between;padding-top:6px}
+  .marca{display:flex;align-items:center;gap:13px}
+  .marca .logo{width:46px;height:46px;flex:none;filter:drop-shadow(0 8px 18px rgba(8,22,42,.5))}
+  .marca-txt{display:flex;flex-direction:column;line-height:1.04}
+  .marca-txt .l1{font-family:var(--ff-disp);font-weight:700;font-size:21px;letter-spacing:.06em;color:#fff}
+  .marca-txt .l2{font-family:var(--ff-mono);font-size:10.5px;letter-spacing:.22em;color:rgba(255,255,255,.6);text-transform:uppercase;margin-top:2px}
+  .selo{font-family:var(--ff-mono);font-size:11px;letter-spacing:.13em;text-transform:uppercase;color:#dfe9f5;
+    border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.05);padding:8px 14px;border-radius:999px;backdrop-filter:blur(6px)}
 
-  /* ---------- cartoes ---------- */
-  main{padding:0 0 72px}
-  .grid{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-top:-56px;position:relative;z-index:3}
-  @media(max-width:760px){.grid{grid-template-columns:1fr;margin-top:-48px}}
+  /* conteudo do hero */
+  .hero-grid{position:relative;z-index:3;display:grid;grid-template-columns:1.04fr .96fr;gap:54px;align-items:center;margin-top:58px}
+  .hero-txt{max-width:560px;opacity:0;transform:translateY(16px);animation:up .7s cubic-bezier(.2,.7,.2,1) .1s forwards}
+  .eyebrow{font-family:var(--ff-mono);font-size:12px;font-weight:500;letter-spacing:.24em;text-transform:uppercase;color:var(--accent-soft);margin-bottom:20px;display:flex;align-items:center;gap:10px}
+  .eyebrow::before{content:"";width:26px;height:1.5px;background:var(--accent);display:inline-block}
+  .hero h1{font-family:var(--ff-disp);font-weight:700;font-size:clamp(33px,4.4vw,52px);line-height:1.04;letter-spacing:-.018em}
+  .hero h1 em{font-style:normal;color:var(--accent);position:relative;white-space:nowrap}
+  .hero .lead{margin-top:20px;font-size:clamp(15.5px,1.6vw,17.5px);color:#cdd9ea;max-width:500px;line-height:1.6}
+  .meta{margin-top:26px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-family:var(--ff-mono);font-size:11.5px;letter-spacing:.08em;color:rgba(255,255,255,.62)}
+  .meta .dot{width:4px;height:4px;border-radius:50%;background:var(--accent);opacity:.85}
+
+  /* assinatura: grafico ascendente */
+  .hero-art{position:relative;opacity:0;animation:fade .9s ease .15s forwards}
+  .hero-art svg{width:100%;height:auto;display:block;overflow:visible}
+  .glow{position:absolute;width:62%;height:62%;right:4%;top:8%;background:radial-gradient(circle, rgba(255,107,53,.32), transparent 70%);filter:blur(26px);z-index:-1}
+
+  .gbar{transform-box:fill-box;transform-origin:bottom;transform:scaleY(0);animation:bar .8s cubic-bezier(.2,.8,.25,1) forwards}
+  .gbar:nth-of-type(1){animation-delay:.30s}.gbar:nth-of-type(2){animation-delay:.38s}
+  .gbar:nth-of-type(3){animation-delay:.46s}.gbar:nth-of-type(4){animation-delay:.54s}
+  .gbar:nth-of-type(5){animation-delay:.62s}.gbar:nth-of-type(6){animation-delay:.70s}
+  .gbar:nth-of-type(7){animation-delay:.78s}.gbar:nth-of-type(8){animation-delay:.86s}
+  .gline{stroke:rgba(255,255,255,.12);stroke-width:1}
+  .gdot{opacity:0;animation:fade .4s ease forwards}
+  .gdot:nth-of-type(1){animation-delay:1.0s}.gdot:nth-of-type(2){animation-delay:1.07s}
+  .gdot:nth-of-type(3){animation-delay:1.14s}.gdot:nth-of-type(4){animation-delay:1.21s}
+  .garrow{stroke:var(--accent);stroke-width:3.4;fill:none;stroke-linecap:round;stroke-linejoin:round;
+    stroke-dasharray:1;stroke-dashoffset:1;animation:draw 1s cubic-bezier(.6,0,.3,1) .92s forwards;
+    filter:drop-shadow(0 6px 12px rgba(255,107,53,.5))}
+  .ghead{fill:var(--accent);opacity:0;transform-box:fill-box;transform-origin:center;transform:scale(.4);animation:pop .45s cubic-bezier(.3,1.4,.5,1) 1.78s forwards;filter:drop-shadow(0 6px 12px rgba(255,107,53,.5))}
+
+  /* ============== CARDS ============== */
+  main{position:relative;z-index:5}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:-96px}
 
   .card{
-    background:var(--branco);border:1px solid var(--linha);border-radius:18px;padding:26px;
-    box-shadow:0 18px 50px -28px rgba(26,10,94,.5);
-    display:flex;flex-direction:column;
-    opacity:0;transform:translateY(14px);
+    position:relative;background:var(--card);border:1px solid var(--borda-2);border-radius:20px;
+    padding:30px 30px 26px;box-shadow:var(--sombra);
+    display:flex;flex-direction:column;overflow:hidden;
+    opacity:0;transform:translateY(18px);
+    transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease;
   }
   .card.in{animation:rise .6s cubic-bezier(.2,.7,.2,1) forwards}
-  .card:nth-child(2){animation-delay:.08s}
-  .card:nth-child(3){animation-delay:.16s}
+  .card:nth-child(1){animation-delay:.30s}.card:nth-child(2){animation-delay:.40s}
+  .card:nth-child(3){animation-delay:.50s}.card:nth-child(4){animation-delay:.60s}
+  .card:hover{transform:translateY(-4px);box-shadow:var(--sombra-hover);border-color:var(--borda)}
+  /* faixa de acento por app */
+  .card::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:var(--ac,var(--navy-lt))}
+  .card.sv{--ac:var(--blue)}.card.es{--ac:var(--green)}.card.cp{--ac:var(--gold)}.card.rf{--ac:var(--accent)}
+
+  .card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:18px}
+  .tile{width:52px;height:52px;flex:none;border-radius:14px;display:grid;place-items:center;
+    color:#fff;font-family:var(--ff-disp);font-weight:700;font-size:18px;letter-spacing:.01em;
+    background:linear-gradient(140deg, var(--navy-lt), var(--navy-2));
+    box-shadow:0 8px 20px -10px rgba(10,31,56,.6), inset 0 1px 0 rgba(255,255,255,.12)}
+  .tag{font-family:var(--ff-mono);font-size:10px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--texto-fraco);background:var(--papel-2);border:1px solid var(--borda-2);padding:5px 10px;border-radius:7px;white-space:nowrap;margin-top:4px}
+  .tag.web{color:var(--accent-2);background:rgba(255,107,53,.08);border-color:rgba(255,107,53,.2)}
+
+  .card h2{font-family:var(--ff-disp);font-weight:600;font-size:21px;letter-spacing:-.01em;display:flex;align-items:baseline;gap:11px;flex-wrap:wrap}
+  .ver{font-family:var(--ff-mono);font-size:12px;font-weight:500;color:var(--navy-lt);background:var(--papel-2);padding:3px 9px;border-radius:6px;letter-spacing:.02em}
+  .desc{color:var(--texto-fraco);font-size:14.5px;line-height:1.58;margin:11px 0 22px;max-width:42ch}
+
+  .acoes{display:flex;gap:11px;flex-wrap:wrap;margin-top:auto}
+  .btn{flex:1;min-width:140px;display:inline-flex;align-items:center;justify-content:center;gap:9px;
+    text-decoration:none;font-family:var(--ff-body);font-weight:600;font-size:14.5px;padding:13px 16px;border-radius:12px;
+    transition:transform .12s ease, box-shadow .12s ease, background .12s ease, border-color .12s ease;cursor:pointer}
+  .btn svg{width:17px;height:17px;flex:none}
+  .btn .sub{font-family:var(--ff-mono);font-size:10.5px;font-weight:400;opacity:.62;letter-spacing:.04em;display:block;margin-top:1px}
+  .btn-pri{background:var(--navy);color:#fff;box-shadow:0 10px 22px -14px rgba(14,39,69,.9)}
+  .btn-pri:hover{transform:translateY(-2px);background:var(--navy-2);box-shadow:0 16px 30px -16px rgba(14,39,69,.95)}
+  .btn-gho{background:#fff;color:var(--navy);border:1.5px solid var(--borda)}
+  .btn-gho:hover{transform:translateY(-2px);border-color:var(--navy-lt);box-shadow:0 12px 26px -16px rgba(44,92,138,.6)}
+  .btn-web{background:linear-gradient(135deg, var(--accent), var(--accent-2));color:#fff;box-shadow:0 12px 24px -12px rgba(242,88,31,.7)}
+  .btn-web:hover{transform:translateY(-2px);box-shadow:0 18px 32px -14px rgba(242,88,31,.8)}
+
+  .nota{margin-top:16px;border-top:1px solid var(--borda-2);padding-top:13px;font-size:12.5px;color:var(--texto-fraco);line-height:1.5}
+  .nota b{color:var(--texto);font-weight:600}
+
+  /* ============== COMO ABRIR ============== */
+  .ajuda{margin-top:30px;background:#fff;border:1px solid var(--borda-2);border-radius:20px;padding:30px;box-shadow:var(--sombra)}
+  .ajuda h3{font-family:var(--ff-disp);font-size:13px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--texto-fraco);margin-bottom:20px}
+  .passos{display:grid;grid-template-columns:1fr 1fr;gap:26px}
+  .passo{display:flex;gap:14px}
+  .passo .os{width:34px;height:34px;flex:none;border-radius:9px;display:grid;place-items:center;background:var(--papel-2);border:1px solid var(--borda-2)}
+  .passo .os svg{width:18px;height:18px;color:var(--navy)}
+  .passo h4{font-family:var(--ff-disp);font-size:15px;font-weight:600;margin-bottom:5px}
+  .passo p{font-size:13.5px;color:var(--texto-fraco);line-height:1.55}
+  .passo p b{color:var(--texto);font-weight:600}
+
+  /* ============== FOOTER ============== */
+  footer{padding:46px 0 56px;margin-top:46px;border-top:1px solid var(--borda)}
+  .foot{display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap}
+  .foot .fmarca{display:flex;align-items:center;gap:11px}
+  .foot .fmarca svg{width:30px;height:30px}
+  .foot .fmarca b{font-family:var(--ff-disp);font-weight:700;letter-spacing:.05em;font-size:15px;color:var(--navy)}
+  .foot .fmarca span{font-family:var(--ff-mono);font-size:11px;color:var(--texto-fraco);letter-spacing:.06em}
+  .foot .fnote{font-size:12.5px;color:var(--texto-fraco);text-align:right;line-height:1.5;max-width:380px}
+
+  /* ============== RESPONSIVO ============== */
+  @media(max-width:880px){
+    .hero{padding-bottom:130px}
+    .hero-grid{grid-template-columns:1fr;gap:36px;margin-top:46px}
+    .hero-art{max-width:440px;margin-top:4px}
+    .grid{grid-template-columns:1fr;margin-top:-86px;gap:18px}
+    .passos{grid-template-columns:1fr;gap:20px}
+    .foot{flex-direction:column;align-items:flex-start}
+    .foot .fnote{text-align:left}
+  }
+  @media(max-width:560px){
+    .wrap{padding:0 18px}
+    .marca-txt .l1{font-size:19px}
+    .selo{display:none}
+    .card{padding:24px 22px}
+    .acoes{flex-direction:column}
+    .btn{min-width:0}
+  }
+
+  /* ============== ANIMACOES ============== */
+  @keyframes up{to{opacity:1;transform:none}}
+  @keyframes fade{to{opacity:1}}
   @keyframes rise{to{opacity:1;transform:none}}
+  @keyframes bar{to{transform:scaleY(1)}}
+  @keyframes draw{to{stroke-dashoffset:0}}
+  @keyframes pop{to{opacity:1;transform:scale(1)}}
 
-  .card .ico{width:46px;height:46px;border-radius:12px;display:grid;place-items:center;color:#fff;font-family:'Space Grotesk';font-weight:700;font-size:19px;margin-bottom:16px}
-  .ico.sv{background:linear-gradient(135deg,#7b2ff7,#a06bff)}
-  .ico.es{background:linear-gradient(135deg,#ff6b35,#ff9466)}
-  .ico.cp{background:linear-gradient(135deg,#2E7D32,#54c25a)}
-
-  .card h2{font-family:'Space Grotesk';font-weight:600;font-size:22px;letter-spacing:-.2px;display:flex;align-items:center;gap:10px}
-  .ver{font-family:'Space Grotesk';font-size:12px;font-weight:600;color:var(--roxo);background:rgba(123,47,247,.1);padding:3px 9px;border-radius:999px;letter-spacing:.3px}
-  .card .desc{color:var(--cinza);font-size:14.5px;margin:8px 0 18px}
-
-  .botoes{display:flex;gap:10px;flex-wrap:wrap;margin-top:auto}
-  .dl{flex:1;min-width:150px;display:flex;align-items:center;justify-content:center;gap:9px;text-decoration:none;font-weight:600;font-size:14.5px;padding:13px 14px;border-radius:11px;transition:transform .12s ease,box-shadow .12s ease,background .12s ease}
-  .dl svg{width:17px;height:17px;flex:none}
-  .dl.win{background:var(--tinta);color:#fff}
-  .dl.win:hover{transform:translateY(-2px);box-shadow:0 10px 22px -10px rgba(14,7,38,.7)}
-  .dl.mac{background:#fff;color:var(--tinta);border:1.5px solid var(--linha)}
-  .dl.mac:hover{transform:translateY(-2px);border-color:var(--roxo);box-shadow:0 10px 22px -12px rgba(123,47,247,.5)}
-  .sub{font-size:11.5px;font-weight:500;opacity:.6;display:block;margin-top:1px}
-
-  .nota{margin-top:16px;border-top:1px solid var(--linha);padding-top:13px;font-size:12.5px;color:var(--cinza)}
-  .nota b{color:var(--tinta);font-weight:600}
-
-  /* ---------- instalar ---------- */
-  .ajuda{margin-top:36px;background:#fff;border:1px solid var(--linha);border-radius:18px;padding:26px}
-  .ajuda h3{font-family:'Space Grotesk';font-size:17px;font-weight:600;margin-bottom:14px}
-  .passos{display:grid;grid-template-columns:1fr 1fr;gap:18px}
-  @media(max-width:680px){.passos{grid-template-columns:1fr}}
-  .passo h4{font-size:13.5px;font-weight:600;margin-bottom:6px;display:flex;align-items:center;gap:8px}
-  .passo h4 .os{width:22px;height:22px;border-radius:6px;display:grid;place-items:center;background:var(--papel)}
-  .passo p{font-size:13px;color:var(--cinza)}
-  .passo p b{color:var(--tinta);font-weight:600}
-
-  footer{padding:30px 0 50px;text-align:center;color:var(--cinza);font-size:12.5px}
-  footer .marca-f{font-family:'Space Grotesk';font-weight:600;color:var(--tinta)}
+  @media(prefers-reduced-motion:reduce){
+    *{animation:none!important}
+    .hero-txt,.hero-art,.card,.gdot{opacity:1;transform:none}
+    .gbar{transform:scaleY(1)}
+    .garrow{stroke-dashoffset:0}
+    .ghead{opacity:1;transform:scale(1)}
+  }
 </style>
 </head>
 <body>
 
-<header>
-  <svg class="malha" preserveAspectRatio="none" viewBox="0 0 1040 360" aria-hidden="true">
-    <g stroke="rgba(255,255,255,.18)" stroke-width="1" fill="none">
-      <path d="M120,40 L320,150 L210,300 M320,150 L560,90 L760,210 M560,90 L520,260 M760,210 L940,130 M760,210 L880,330"/>
-    </g>
-    <g fill="rgba(255,180,151,.85)">
-      <circle cx="120" cy="40" r="3.5"/><circle cx="320" cy="150" r="4.5"/><circle cx="210" cy="300" r="3"/>
-      <circle cx="560" cy="90" r="4"/><circle cx="760" cy="210" r="4.5"/><circle cx="520" cy="260" r="3"/>
-      <circle cx="940" cy="130" r="3.5"/><circle cx="880" cy="330" r="3"/>
-    </g>
+<header class="hero">
+  <!-- trama livro-razao -->
+  <svg class="grade" preserveAspectRatio="none" viewBox="0 0 1200 600" aria-hidden="true">
+    <defs>
+      <pattern id="razao" width="1200" height="34" patternUnits="userSpaceOnUse">
+        <line x1="0" y1="33" x2="1200" y2="33" stroke="rgba(255,255,255,.05)" stroke-width="1"/>
+      </pattern>
+    </defs>
+    <rect width="1200" height="600" fill="url(#razao)"/>
+    <line x1="150" y1="0" x2="150" y2="600" stroke="rgba(255,255,255,.04)" stroke-width="1"/>
   </svg>
+  <div class="vinheta"></div>
 
   <div class="wrap">
     <div class="topbar">
       <div class="marca">
-        <span class="logo">C</span>
-        <div>ConectaOn <span>/ Prime</span></div>
+        <svg class="logo" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" aria-label="Prime">
+          <defs>
+            <linearGradient id="navyTile" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="#2E5F95"/><stop offset="1" stop-color="#11335A"/>
+            </linearGradient>
+          </defs>
+          <rect width="48" height="48" rx="13" fill="url(#navyTile)" stroke="rgba(255,255,255,.1)"/>
+          <g fill="#fff">
+            <rect x="9" y="29" width="5.5" height="10" rx="1.8"/>
+            <rect x="17" y="24" width="5.5" height="15" rx="1.8"/>
+            <rect x="25" y="19" width="5.5" height="20" rx="1.8"/>
+            <rect x="33" y="13" width="5.5" height="26" rx="1.8"/>
+          </g>
+          <path d="M10 31 L19.5 26 L27.5 21 L37 13.5" fill="none" stroke="#FF6B35" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M30.5 14 L37.8 12.6 L37.2 19.8 Z" fill="#FF6B35"/>
+        </svg>
+        <div class="marca-txt">
+          <span class="l1">PRIME</span>
+          <span class="l2">Central de Aplicativos</span>
+        </div>
       </div>
-      <span class="pill">Central de Aplicativos</span>
+      <span class="selo">Conformidade fiscal e trabalhista</span>
     </div>
 
-    <div class="hero">
-      <div class="eyebrow">Sempre a versao mais recente</div>
-      <h1>Seus aplicativos, prontos para baixar em <em>qualquer computador</em>.</h1>
-      <p>Escolha o programa e o sistema. O link sempre entrega a ultima versao publicada, sem precisar de login.</p>
+    <div class="hero-grid">
+      <div class="hero-txt">
+        <div class="eyebrow">Plataforma interna</div>
+        <h1>Toda a base fiscal, <em>auditada e recuperada</em>.</h1>
+        <p class="lead">SPED, eSocial, recuperacao de creditos e coleta de XML em quatro ferramentas. Sempre na versao mais recente, sem login.</p>
+        <div class="meta">
+          <span>4 FERRAMENTAS</span><span class="dot"></span>
+          <span>WINDOWS · MAC · WEB</span><span class="dot"></span>
+          <span>SEM LOGIN</span>
+        </div>
+      </div>
+
+      <div class="hero-art" aria-hidden="true">
+        <div class="glow"></div>
+        <svg viewBox="0 0 380 300" xmlns="http://www.w3.org/2000/svg">
+          <!-- gridlines -->
+          <line class="gline" x1="20" y1="70"  x2="360" y2="70"/>
+          <line class="gline" x1="20" y1="130" x2="360" y2="130"/>
+          <line class="gline" x1="20" y1="190" x2="360" y2="190"/>
+          <line class="gline" x1="20" y1="250" x2="360" y2="250"/>
+          <defs>
+            <linearGradient id="barFill" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#5E8FC4"/><stop offset="1" stop-color="#27517F"/>
+            </linearGradient>
+          </defs>
+          <!-- barras ascendentes (baseline y=250) -->
+          <rect class="gbar" x="34"  y="200" width="26" height="50"  rx="5" fill="url(#barFill)"/>
+          <rect class="gbar" x="74"  y="178" width="26" height="72"  rx="5" fill="url(#barFill)"/>
+          <rect class="gbar" x="114" y="186" width="26" height="64"  rx="5" fill="url(#barFill)"/>
+          <rect class="gbar" x="154" y="150" width="26" height="100" rx="5" fill="url(#barFill)"/>
+          <rect class="gbar" x="194" y="158" width="26" height="92"  rx="5" fill="url(#barFill)"/>
+          <rect class="gbar" x="234" y="116" width="26" height="134" rx="5" fill="url(#barFill)"/>
+          <rect class="gbar" x="274" y="96"  width="26" height="154" rx="5" fill="url(#barFill)"/>
+          <rect class="gbar" x="314" y="64"  width="26" height="186" rx="5" fill="url(#barFill)"/>
+          <!-- seta laranja sobre os topos -->
+          <path class="garrow" pathLength="1" d="M47 196 L87 174 L127 182 L167 146 L207 154 L247 112 L287 92 L327 60"/>
+          <!-- ponta da seta -->
+          <path class="ghead" d="M312 56 L332 50 L330 73 Z"/>
+          <!-- pontos -->
+          <circle class="gdot" cx="247" cy="112" r="4" fill="#fff"/>
+          <circle class="gdot" cx="287" cy="92"  r="4" fill="#fff"/>
+          <circle class="gdot" cx="327" cy="60"  r="4.5" fill="#FF6B35"/>
+          <circle class="gdot" cx="167" cy="146" r="4" fill="#fff"/>
+        </svg>
+      </div>
     </div>
   </div>
 </header>
@@ -143,86 +306,131 @@
   <div class="grid">
 
     <!-- SintegraView -->
-    <article class="card" id="card-sv">
-      <div class="ico sv">SV</div>
+    <article class="card sv" id="card-sv">
+      <div class="card-top">
+        <div class="tile">SV</div>
+        <span class="tag">Windows · Mac</span>
+      </div>
       <h2>SintegraView <span class="ver" id="ver-sv">versao atual</span></h2>
-      <p class="desc">Leitura, escrituracao e relatorios de arquivos Sintegra. Consolidacao por CNPJ, cupons ECF, dossie tecnico para laudo.</p>
-      <div class="botoes">
-        <a class="dl win" id="sv-win" href="#" rel="noopener">
+      <p class="desc">Leitura, escrituracao e relatorios de arquivos Sintegra. Consolidacao por CNPJ, cupons ECF e dossie tecnico para laudo.</p>
+      <div class="acoes">
+        <a class="btn btn-pri" id="sv-win" href="#" rel="noopener">
           <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 5.5 10.5 4.4v7.1H3V5.5Zm0 13L10.5 19.6v-7.1H3v6Zm8.5 1.2L21 21V12.5h-9.5v7.2Zm0-15.4v7.2H21V3l-9.5 1.3Z"/></svg>
-          <span>Windows<span class="sub">arquivo .exe</span></span>
+          <span>Windows<span class="sub">.exe</span></span>
         </a>
-        <a class="dl mac" id="sv-mac" href="#" rel="noopener">
+        <a class="btn btn-gho" id="sv-mac" href="#" rel="noopener">
           <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.4 12.7c0-2.2 1.8-3.3 1.9-3.3-1-1.5-2.6-1.7-3.2-1.7-1.4-.1-2.6.8-3.3.8-.7 0-1.7-.8-2.8-.8-1.5 0-2.8.8-3.6 2.2-1.5 2.7-.4 6.6 1.1 8.8.7 1 1.6 2.2 2.7 2.2 1.1 0 1.5-.7 2.8-.7 1.3 0 1.6.7 2.8.7 1.2 0 1.9-1.1 2.6-2.1.8-1.2 1.2-2.3 1.2-2.4-.1 0-2.3-.9-2.3-3.5Zm-2.2-6.4c.6-.7 1-1.7.9-2.7-.9 0-1.9.6-2.5 1.3-.5.6-1 1.6-.9 2.6 1 .1 2-.5 2.5-1.2Z"/></svg>
-          <span>Mac<span class="sub">arquivo .app</span></span>
+          <span>Mac<span class="sub">.app</span></span>
         </a>
       </div>
-      <div class="nota"><b>Primeira vez no Mac:</b> abra com o botao direito, depois Abrir, e confirme. No Windows, se aparecer aviso, clique em Mais informacoes e Executar assim mesmo.</div>
     </article>
 
     <!-- eSocialView -->
-    <article class="card" id="card-es">
-      <div class="ico es">eS</div>
+    <article class="card es" id="card-es">
+      <div class="card-top">
+        <div class="tile">eS</div>
+        <span class="tag">Windows · Mac</span>
+      </div>
       <h2>eSocialView <span class="ver" id="ver-es">versao atual</span></h2>
-      <p class="desc">Leitura de XML do eSocial e relatorios. Folha e rubricas, bases INSS e FGTS, movimentacao, trabalhadores e dossie.</p>
-      <div class="botoes">
-        <a class="dl win" id="es-win" href="#" rel="noopener">
+      <p class="desc">Leitura de XML do eSocial e relatorios. Folha e rubricas, bases de INSS e FGTS, movimentacao, trabalhadores e dossie.</p>
+      <div class="acoes">
+        <a class="btn btn-pri" id="es-win" href="#" rel="noopener">
           <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 5.5 10.5 4.4v7.1H3V5.5Zm0 13L10.5 19.6v-7.1H3v6Zm8.5 1.2L21 21V12.5h-9.5v7.2Zm0-15.4v7.2H21V3l-9.5 1.3Z"/></svg>
-          <span>Windows<span class="sub">arquivo .exe</span></span>
+          <span>Windows<span class="sub">.exe</span></span>
         </a>
-        <a class="dl mac" id="es-mac" href="#" rel="noopener">
+        <a class="btn btn-gho" id="es-mac" href="#" rel="noopener">
           <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.4 12.7c0-2.2 1.8-3.3 1.9-3.3-1-1.5-2.6-1.7-3.2-1.7-1.4-.1-2.6.8-3.3.8-.7 0-1.7-.8-2.8-.8-1.5 0-2.8.8-3.6 2.2-1.5 2.7-.4 6.6 1.1 8.8.7 1 1.6 2.2 2.7 2.2 1.1 0 1.5-.7 2.8-.7 1.3 0 1.6.7 2.8.7 1.2 0 1.9-1.1 2.6-2.1.8-1.2 1.2-2.3 1.2-2.4-.1 0-2.3-.9-2.3-3.5Zm-2.2-6.4c.6-.7 1-1.7.9-2.7-.9 0-1.9.6-2.5 1.3-.5.6-1 1.6-.9 2.6 1 .1 2-.5 2.5-1.2Z"/></svg>
-          <span>Mac<span class="sub">arquivo .app</span></span>
+          <span>Mac<span class="sub">.app</span></span>
         </a>
       </div>
-      <div class="nota"><b>Primeira vez no Mac:</b> abra com o botao direito, depois Abrir, e confirme. No Windows, se aparecer aviso, clique em Mais informacoes e Executar assim mesmo.</div>
     </article>
 
     <!-- Coletor Prime -->
-    <article class="card" id="card-cp">
-      <div class="ico cp">CP</div>
+    <article class="card cp" id="card-cp">
+      <div class="card-top">
+        <div class="tile">CP</div>
+        <span class="tag">Windows · Mac</span>
+      </div>
       <h2>Coletor Prime <span class="ver" id="ver-cp">versao atual</span></h2>
-      <p class="desc">Baixa em massa os XML de eventos do eSocial para auditoria. Voce solicita os periodos, ele acompanha a liberacao da Receita e baixa tudo, organizado por cliente.</p>
-      <div class="botoes">
-        <a class="dl win" id="cp-win" href="#" rel="noopener">
+      <p class="desc">Baixa em massa os XML de eventos do eSocial para auditoria. Voce pede os periodos, ele acompanha a liberacao da Receita e baixa tudo, organizado por cliente.</p>
+      <div class="acoes">
+        <a class="btn btn-pri" id="cp-win" href="#" rel="noopener">
           <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 5.5 10.5 4.4v7.1H3V5.5Zm0 13L10.5 19.6v-7.1H3v6Zm8.5 1.2L21 21V12.5h-9.5v7.2Zm0-15.4v7.2H21V3l-9.5 1.3Z"/></svg>
-          <span>Windows<span class="sub">arquivo .exe</span></span>
+          <span>Windows<span class="sub">.exe</span></span>
         </a>
-        <a class="dl mac" id="cp-mac" href="#" rel="noopener">
+        <a class="btn btn-gho" id="cp-mac" href="#" rel="noopener">
           <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.4 12.7c0-2.2 1.8-3.3 1.9-3.3-1-1.5-2.6-1.7-3.2-1.7-1.4-.1-2.6.8-3.3.8-.7 0-1.7-.8-2.8-.8-1.5 0-2.8.8-3.6 2.2-1.5 2.7-.4 6.6 1.1 8.8.7 1 1.6 2.2 2.7 2.2 1.1 0 1.5-.7 2.8-.7 1.3 0 1.6.7 2.8.7 1.2 0 1.9-1.1 2.6-2.1.8-1.2 1.2-2.3 1.2-2.4-.1 0-2.3-.9-2.3-3.5Zm-2.2-6.4c.6-.7 1-1.7.9-2.7-.9 0-1.9.6-2.5 1.3-.5.6-1 1.6-.9 2.6 1 .1 2-.5 2.5-1.2Z"/></svg>
-          <span>Mac<span class="sub">arquivo .app</span></span>
+          <span>Mac<span class="sub">.app</span></span>
         </a>
       </div>
-      <div class="nota"><b>Precisa do Google Chrome</b> instalado nesta maquina; o login no eSocial e feito com o seu certificado. <b>Primeira vez no Mac:</b> abra com o botao direito, depois Abrir, e confirme.</div>
+      <div class="nota"><b>Precisa do Google Chrome</b> instalado nesta maquina; o login no eSocial e feito com o seu certificado.</div>
+    </article>
+
+    <!-- Revisor Fiscal Prime (web) -->
+    <article class="card rf" id="card-rf">
+      <div class="card-top">
+        <div class="tile">RF</div>
+        <span class="tag web">Web · sem instalar</span>
+      </div>
+      <h2>Revisor Fiscal Prime <span class="ver" id="ver-rf">versao atual</span></h2>
+      <p class="desc">Revisao fiscal de ICMS no navegador. Importa SPED e XML, faz o cotejo entre os dois e aponta divergencias e creditos a recuperar. Foco em MG.</p>
+      <div class="acoes">
+        <a class="btn btn-web" href="revisor/" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 3h6v2H5v14h14v-6h2v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Zm9 0h7v7h-2V6.4l-7.3 7.3-1.4-1.4L17.6 5H14V3Z"/></svg>
+          <span>Abrir no navegador<span class="sub">nao precisa instalar</span></span>
+        </a>
+      </div>
+      <div class="nota"><b>Abre direto no navegador</b>, em qualquer computador. O endereco sempre carrega a versao mais recente publicada.</div>
     </article>
 
   </div>
 
   <section class="ajuda">
-    <h3>Como instalar</h3>
+    <h3>Como abrir os programas de desktop</h3>
     <div class="passos">
       <div class="passo">
-        <h4><span class="os">🪟</span> No Windows</h4>
-        <p>Baixe o arquivo <b>.exe</b> e clique para abrir. Se o Windows mostrar um aviso azul, clique em <b>Mais informacoes</b> e depois <b>Executar assim mesmo</b>. Acontece porque o programa e interno e nao tem assinatura paga.</p>
+        <div class="os"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 5.5 10.5 4.4v7.1H3V5.5Zm0 13L10.5 19.6v-7.1H3v6Zm8.5 1.2L21 21V12.5h-9.5v7.2Zm0-15.4v7.2H21V3l-9.5 1.3Z"/></svg></div>
+        <div>
+          <h4>No Windows</h4>
+          <p>Baixe o <b>.exe</b> e clique para abrir. Se aparecer um aviso azul, clique em <b>Mais informacoes</b> e depois <b>Executar assim mesmo</b>. Acontece porque o programa e interno e nao tem assinatura paga.</p>
+        </div>
       </div>
       <div class="passo">
-        <h4><span class="os"></span> No Mac</h4>
-        <p>Baixe o <b>.app</b> (vem em .zip, de dois cliques para descompactar). Na primeira vez, clique nele com o <b>botao direito</b>, escolha <b>Abrir</b> e confirme. Depois disso ele abre normal.</p>
+        <div class="os"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.4 12.7c0-2.2 1.8-3.3 1.9-3.3-1-1.5-2.6-1.7-3.2-1.7-1.4-.1-2.6.8-3.3.8-.7 0-1.7-.8-2.8-.8-1.5 0-2.8.8-3.6 2.2-1.5 2.7-.4 6.6 1.1 8.8.7 1 1.6 2.2 2.7 2.2 1.1 0 1.5-.7 2.8-.7 1.3 0 1.6.7 2.8.7 1.2 0 1.9-1.1 2.6-2.1.8-1.2 1.2-2.3 1.2-2.4-.1 0-2.3-.9-2.3-3.5Zm-2.2-6.4c.6-.7 1-1.7.9-2.7-.9 0-1.9.6-2.5 1.3-.5.6-1 1.6-.9 2.6 1 .1 2-.5 2.5-1.2Z"/></svg></div>
+        <div>
+          <h4>No Mac</h4>
+          <p>Baixe o <b>.app</b> (vem em .zip, de dois cliques para descompactar). Na primeira vez, clique nele com o <b>botao direito</b>, escolha <b>Abrir</b> e confirme. Depois disso ele abre normal.</p>
+        </div>
       </div>
     </div>
   </section>
 </main>
 
 <footer class="wrap">
-  <p><span class="marca-f">ConectaOn</span> · Aplicativos internos de conformidade fiscal e trabalhista.<br>
-  Os links acima sempre apontam para a versao mais recente publicada.</p>
+  <div class="foot">
+    <div class="fmarca">
+      <svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <defs><linearGradient id="navyFoot" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2E5F95"/><stop offset="1" stop-color="#11335A"/></linearGradient></defs>
+        <rect width="48" height="48" rx="13" fill="url(#navyFoot)"/>
+        <g fill="#fff"><rect x="9" y="29" width="5.5" height="10" rx="1.8"/><rect x="17" y="24" width="5.5" height="15" rx="1.8"/><rect x="25" y="19" width="5.5" height="20" rx="1.8"/><rect x="33" y="13" width="5.5" height="26" rx="1.8"/></g>
+        <path d="M10 31 L19.5 26 L27.5 21 L37 13.5" fill="none" stroke="#FF6B35" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M30.5 14 L37.8 12.6 L37.2 19.8 Z" fill="#FF6B35"/>
+      </svg>
+      <div>
+        <b>PRIME</b><br>
+        <span>Plataforma ConectaOn</span>
+      </div>
+    </div>
+    <p class="fnote">Aplicativos internos de conformidade fiscal e trabalhista. Os links acima sempre apontam para a versao mais recente publicada.</p>
+  </div>
 </footer>
 
 <script>
   // ===================================================================
-  //  CONFIG: enderecos de download. Cada programa tem um "release" fixo
-  //  no repositorio conectaon-apps (tag sintegraview / esocialview) que
+  //  Downloads: cada programa de desktop tem um "release" fixo no repo
+  //  conectaon-apps (tag sintegraview / esocialview / coletorprime) que
   //  e atualizado a cada publicacao. O link nunca muda; o conteudo sim.
+  //  O Revisor e web: abre em /revisor/ e a versao vem de versao.txt.
   // ===================================================================
   const REPO = "Thiago2568/conectaon-apps";
   const BASE = "https://github.com/" + REPO + "/releases/download";
@@ -234,9 +442,9 @@
     "cp-win": BASE + "/coletorprime/ColetorPrime-Windows.exe",
     "cp-mac": BASE + "/coletorprime/ColetorPrime-macOS.zip",
   };
-  for (const id in LINKS){ const a=document.getElementById(id); if(a) a.href=LINKS[id]; }
+  for (const id in LINKS){ const a = document.getElementById(id); if(a) a.href = LINKS[id]; }
 
-  // mostra o numero da versao de cada programa (busca publica, opcional)
+  // numero da versao de cada programa de desktop (busca publica, opcional)
   async function versao(tag, elId){
     try{
       const r = await fetch("https://api.github.com/repos/" + REPO + "/releases/tags/" + tag);
@@ -252,14 +460,14 @@
   versao("esocialview", "ver-es");
   versao("coletorprime", "ver-cp");
 
-  // animacao de entrada dos cartoes
-  if(matchMedia("(prefers-reduced-motion: no-preference)").matches){
-    document.getElementById("card-sv").classList.add("in");
-    document.getElementById("card-es").classList.add("in");
-    document.getElementById("card-cp").classList.add("in");
-  } else {
-    document.querySelectorAll(".card").forEach(c=>c.style.opacity=1);
-  }
+  // Revisor (web): a versao vem do versao.txt publicado ao lado do app
+  fetch("revisor/versao.txt")
+    .then(r => r.ok ? r.text() : "")
+    .then(t => { t = (t || "").trim(); const el = document.getElementById("ver-rf"); if(el && t) el.textContent = "v" + t.replace(/^v/, ""); })
+    .catch(function(){ /* silencioso */ });
+
+  // animacao de entrada dos cards (respeita prefers-reduced-motion via CSS)
+  document.querySelectorAll(".card").forEach(c => c.classList.add("in"));
 </script>
 </body>
 </html>
