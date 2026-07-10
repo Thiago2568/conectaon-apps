@@ -753,6 +753,7 @@ body {
   background: #fff; color: var(--primaria); border-radius: 8px; padding: 4px 10px; cursor: pointer; }
 .aud-btn-selic:hover { border-color: var(--primaria); }
 .aud-tema-corr { font-size: 11.5px; color: #1f4e78; font-weight: 700; margin-top: -2px; }
+.aud-tema-cond { font-size: 9.5px; font-weight: 800; padding: 2px 7px; border-radius: 14px; background: #f1e9fa; color: #6b3fa0; border: 1px dashed #6b3fa0; }
 .aud-valor-corr { font-size: 11px; color: #1f4e78; font-weight: 700; }
 .selic-grid input { width: 58px; padding: 3px 4px; border: 1px solid var(--borda); border-radius: 5px; font-size: 11.5px; text-align: right; }
 .selic-grid td, .selic-grid th { padding: 3px 4px; }
@@ -6329,6 +6330,36 @@ const Conhecimento = (function () {
       fundamento: 'STJ EREsp 1.517.492 e Tema 1182 (até 2023); Lei 14.789/2023 (2024+)',
       le: 'Benefício = destaque (18%/12%) − recolhimento efetivo (1920) × exclusões no M300 do e-Lalur × IRPJ/CSLL a pagar (N630/N670)',
       regra: 'O crédito presumido de ICMS é subvenção e não compõe a base de IRPJ/CSLL (pacífico até 2023, sem exigência de requisitos). Se o e-Lalur não registra a exclusão, o caixa imediato é o IRPJ/CSLL pagos nos exercícios com lucro; o excedente vira prejuízo fiscal compensável.' },
+    { id: 'FED-843-1', area: 'cruzada', setor: '*', uf: '*', tipo: 'recuperacao', sev: 'alta',
+      base: 'implementada', status: 'implementada', parte: null,
+      nome: 'Tema 843/STF: PIS/COFINS sobre o crédito presumido (condicionado)',
+      fundamento: 'STF RE 835.818 (Tema 843); STJ EREsp 1.517.492 — pacto federativo',
+      le: 'Benefício real (destaque × alíquotas − recolhido efetivo da sub-apuração 1920) × 9,25%',
+      regra: 'O crédito presumido de ICMS é renúncia fiscal do Estado, não receita — sua inclusão na base de PIS/COFINS está em julgamento no STF (placar 5×5, faltando o voto do Min. Fux; suspensão nacional). A regra quantifica o valor em jogo e o marca como CONDICIONADO: só vira caixa com decisão favorável, e a proteção contra modulação exige ação judicial própria. Status jurisprudencial no módulo TesesRadar (atualizar a cada ciclo).' },
+    { id: 'MG-DEV-1', area: 'cruzada', setor: '*', uf: 'MG', tipo: 'recuperacao', sev: 'media',
+      base: 'implementada', status: 'implementada', parte: null,
+      nome: 'Devoluções de venda: ICMS próprio, ST (E210 × C190) e volume',
+      fundamento: 'RICMS/MG, art. 66, V e Anexo XV (crédito e ST na devolução); LC 87/96',
+      le: 'Consolidação C190 das devoluções × VL_DEVOL_ST (E210) + itens sem crédito + ratio devolução/receita',
+      regra: 'Três verificações: (1) o ST das devoluções lançado na apuração (E210) deve coincidir com o consolidado da escrituração (C190) — divergência para menos é crédito, para mais é exposição; (2) devolução tributável com vl_icms zerado indica crédito do próprio não escriturado; (3) devoluções acima de 15% da receita anual acendem o alarme de lastro documental — cada devolução restitui ~38% em créditos nos três tributos.' },
+    { id: 'FED-DEV-1', area: 'cruzada', setor: '*', uf: '*', tipo: 'recuperacao', sev: 'media',
+      base: 'implementada', status: 'implementada', parte: null,
+      nome: 'Devoluções de venda × EFD-Contribuições (crédito art. 3º, VIII)',
+      fundamento: 'Leis 10.637/02 e 10.833/03, art. 3º, VIII; Lei 13.097/2015 (monofásico de bebidas)',
+      le: 'Itens de devolução pareados: presença na Contribuições + CST 50-56 + alíquota implícita das próprias devoluções',
+      regra: 'A devolução de venda tributada gera crédito de PIS/COFINS pelo valor pago na venda original — no monofásico de bebidas, pela alíquota efetiva praticada. A regra aponta itens fora da Contribuições ou sem CST de crédito, valorando pela alíquota implícita observada nas devoluções creditadas do próprio contribuinte.' },
+    { id: 'FED-779-1', area: 'cruzada', setor: 'industria', uf: '*', tipo: 'recuperacao', sev: 'media',
+      base: 'implementada', status: 'implementada', parte: null,
+      nome: 'Insumos ampliados (Tema 779): fretes × Contribuições + uso/consumo',
+      fundamento: 'STJ, REsp 1.221.170 (Tema 779): insumo pela essencialidade/relevância; Leis 10.637 e 10.833',
+      le: 'Cotejo por chave dos CT-e (D100 fiscal × Contribuições) + base de uso/consumo (1556/2556)',
+      regra: 'Fretes de aquisição que não constam da EFD-Contribuições não geraram o crédito de 9,25% (frete na aquisição é crédito pacífico; entre estabelecimentos, Tema 779). O uso e consumo entra como teto qualificável por laudo de essencialidade — típico em indústria de alimentos e bebidas (sanitização, CO2, análises, manutenção).' },
+    { id: 'MG-POS-1', area: 'cruzada', setor: '*', uf: 'MG', tipo: 'recuperacao', sev: 'media',
+      base: 'implementada', status: 'implementada', parte: null,
+      nome: 'Créditos ordinários pós-regime (destacado × creditado)',
+      fundamento: 'LC 87/96, arts. 19-20; fim do regime especial restabelece o creditamento ordinário',
+      le: 'ICMS destacado nas entradas × créditos escriturados no E110, período a período após o fim do regime',
+      regra: 'Regimes de crédito presumido vedam os créditos de entrada; no encerramento, todos voltam a ser apropriáveis. A regra confere mês a mês se a empresa retomou o creditamento pleno — e aponta o gap quando o destacado supera o escriturado.' },
     { id: 'FED-IPI-1', area: 'cruzada', setor: 'industria', uf: '*', tipo: 'recuperacao', sev: 'media',
       base: 'implementada', status: 'implementada', parte: null,
       nome: 'Saldo credor de IPI acumulado (E520)',
@@ -8295,6 +8326,41 @@ ${ws('Tabela Selic', cab3, linhas3)}
 })();
 
 
+// ===================== teses_radar.js =====================
+// Radar de teses judiciais federais — inteligência jurisprudencial verificada
+// em fontes públicas (STF/STJ/TRFs/COSIT). Alimenta o capítulo "Radar" do laudo
+// e os badges de condicionado. ATUALIZAR a cada ciclo de pesquisa.
+window.TesesRadar = (function () {
+  const VERIFICADO = '10/07/2026';
+  const LISTA = [
+    { id: 'TEMA-843', nome: 'Crédito presumido de ICMS fora da base de PIS/COFINS (Tema 843/STF)',
+      status: 'Julgamento presencial retirado de pauta em 20/02/2026 com placar 5×5, restando apenas o voto do Min. Luiz Fux (que divergiu no plenário virtual). Suspensão nacional vigente; ADC 98 (AGU) em tramitação. Liminares seguem sendo concedidas (ex.: TRF-3, AI 5022223-94.2024, jul/2026).',
+      recomendacao: 'Mandado de segurança ANTES da retomada, com pedido liminar — proteção contra modulação. Risco de mérito real (voto histórico do Fux é contrário).',
+      urgencia: 'MÁXIMA', computa: 'tema843' },
+    { id: 'TEMA-1416', nome: 'Subvenção (crédito presumido) × IRPJ/CSLL pós-Lei 14.789 (Tema 1.416/STJ)',
+      status: 'Afetado como repetitivo em março/2026 (regimes anterior E posterior à Lei 14.789/2023), com suspensão nacional. REsp 2.202.266/RS sinaliza que a lei nova não altera o pacto federativo. COSIT 223/224 (out/2025) fecham a via administrativa para 2024+.',
+      recomendacao: 'Medida judicial para os exercícios 2024+ (IRPJ/CSLL pagos e correntes); a via administrativa segue válida apenas até 2023 (Tema 1182).',
+      urgencia: 'Alta', computa: null },
+    { id: 'TEMA-962', nome: 'Selic de indébito fora de IRPJ/CSLL (Tema 962/STF — julgado)',
+      status: 'Julgado favoravelmente (RE 1.063.187/2021): os juros Selic recebidos em repetição/compensação de indébito não compõem IRPJ/CSLL.',
+      recomendacao: 'Não oferecer à tributação a Selic embutida nos PER/DCOMPs deste trabalho — a economia está quantificada abaixo.',
+      urgencia: 'Aplicar já', computa: 'economia962' },
+    { id: 'TEMA-1003', nome: 'Selic no ressarcimento de crédito escritural após 360 dias (Tema 1003/STJ)',
+      status: 'Consolidado: a correção só corre após 360 dias do protocolo do pedido de ressarcimento sem análise.',
+      recomendacao: 'Protocolar imediatamente os PER de saldo credor (IPI) — o protocolo dispara o relógio dos 360 dias a favor do contribuinte.',
+      urgencia: 'Alta', computa: null },
+    { id: 'TEMA-1067', nome: 'PIS/COFINS sobre a própria base (Tema 1067/STF)',
+      status: 'Pendente de julgamento no STF, sem data.',
+      recomendacao: 'Tese de prateleira (~0,7% da receita); avaliar cumulação no mesmo MS do Tema 843.',
+      urgencia: 'Média', computa: null },
+    { id: 'COLETIVAS', nome: 'Via associativa (MS coletivo — Súmulas 629/630 do STF)',
+      status: 'Não localizado MS coletivo setorial sobre os Temas 843/1416; Abracerva litiga coletivamente (vitória no TRF-3 em abr/2026 em matéria regulatória); ADI 7633 (CNI) ataca a Lei 14.789.',
+      recomendacao: 'Filiação à entidade de classe + diligência no sindicato patronal estadual; a proteção dos valores desta auditoria segue pela via individual.',
+      urgencia: 'Média', computa: null },
+  ];
+  return { VERIFICADO, LISTA };
+})();
+
 // ===================== laudo.js =====================
 // Laudo de Auditoria Fiscal v3.18.2 — narrativo por tese, no formato dos laudos
 // Prime: resumo executivo auto-gerado, quadro-síntese, totalizador clicável,
@@ -8333,8 +8399,9 @@ window.Laudo = (function () {
     const M = {};
     for (const a of (achados || [])) {
       const id = a._regra || a.tipo || '?';
-      const t = (M[id] = M[id] || { id, nat: null, esfera: ambito(id), v: 0, vc: 0, n: 0,
+      const t = (M[id] = M[id] || { id, nat: null, esfera: ambito(id), v: 0, vc: 0, n: 0, cond: false,
         filiais: new Set(), periodos: [], achados: [], bl: '', nome: '', doc: docDe(id) });
+      if (a.condicionado) t.cond = true;
       const nat = (a.natureza === 'credito' || a.natureza === 'erro') ? a.natureza : 'risco';
       t.nat = t.nat || nat;
       t.v += Number(a.valor) || 0;
@@ -8377,11 +8444,11 @@ window.Laudo = (function () {
   function quadroSinteseHtml(temas) {
     if (!temas.length) return '';
     const linhas = temas.slice(0, 12).map(t => `
-      <tr><td>${esc(t.nome)} <span class="esf-mini ${t.esfera === 'federal' ? 'fed' : 'est'}">${t.esfera === 'federal' ? 'FED' : 'ICMS'}</span></td>
+      <tr><td>${esc(t.nome)} <span class="esf-mini ${t.esfera === 'federal' ? 'fed' : 'est'}">${t.esfera === 'federal' ? 'FED' : 'ICMS'}</span>${t.cond ? ' <span class="esf-mini" style="background:#f1e9fa;color:#6b3fa0;border:1px dashed #6b3fa0">⚖</span>' : ''}</td>
       <td>${NAT_ROT[t.nat] || t.nat}</td>
       <td class="num" style="color:${t.nat === 'credito' ? '#1a7f4b' : '#c0392b'};font-weight:700">${fmt(t.v)}</td>
       <td class="num" style="color:${t.nat === 'credito' ? '#1a7f4b' : '#c0392b'}">${t.vc > t.v + 0.005 ? fmt(t.vc) : '—'}</td></tr>`).join('');
-    return `<h2>2. Quadro-síntese</h2>
+    return `<h2 id="sec-2">2. Quadro-síntese</h2>
       <table><thead><tr><th>Tese</th><th>Natureza</th><th style="text-align:right">Valor original</th><th style="text-align:right">💹 Corrigido (Selic)</th></tr></thead><tbody>${linhas}</tbody></table>
       <p style="font-size:11px;color:#5a6a78">Correção pela Selic acumulada até o mês de emissão (regra RFB: soma das taxas mensais do mês seguinte à competência + 1% no mês atual). <strong>Créditos estaduais não recebem correção</strong>: o aproveitamento escritural de ICMS é pelo valor nominal (RICMS/MG, art. 67, § 2º do Dec. 43.080/2002, regra mantida no Dec. 48.589/2023; STF exige lei estadual autorizativa, inexistente em MG). Consolidados/sem competência mensal também não. A memória de cálculo completa está disponível em Excel na aba Auditorias do programa.</p>`;
   }
@@ -8403,7 +8470,7 @@ window.Laudo = (function () {
     }).join('');
     const mais = t.n > 5 ? `<p class="mais">… e mais ${t.n - 5} achado(s) desta tese, disponíveis na aba Detalhe do programa.</p>` : '';
     return `
-      <h3>${num} ${esc(t.nome)} <span class="nat-badge ${t.nat}">${NAT_ROT[t.nat]}</span></h3>
+      <h3>${num} ${esc(t.nome)} <span class="nat-badge ${t.nat}">${NAT_ROT[t.nat]}</span>${t.cond ? ' <span class="badge-cond">⚖ condicionado — ver Radar</span>' : ''}</h3>
       <p>${esc(explic)}</p>
       ${fund}
       <p class="stats"><strong>${fmt(t.v)}</strong>${t.vc > t.v + 0.005 ? ` · corrigido pela Selic: <strong>${fmt(t.vc)}</strong>` : ''} em ${t.n} achado(s) · ${t.filiais.size || 1} filial(is) · períodos: ${esc(perTxt)}.</p>
@@ -8441,6 +8508,26 @@ window.Laudo = (function () {
       <div class="edit" contenteditable="true" id="ed-plano">${esc(obs)}</div>`;
   }
 
+  // ---- Radar de teses judiciais (inteligência do módulo TesesRadar) ----
+  function radarHtml(temas, condV, condVC, econ962) {
+    const R = window.TesesRadar;
+    if (!R || !R.LISTA || !R.LISTA.length) return '';
+    const urgCls = (u) => /MÁXIMA/i.test(u) ? 'u-max' : (/Alta|Aplicar/i.test(u) ? 'u-alta' : 'u-med');
+    const linhas = R.LISTA.map(t => {
+      let valorCaso = '—';
+      if (t.computa === 'tema843' && condV > 0) valorCaso = `${fmt(condV)} → ${fmt(condVC)} corrigido`;
+      if (t.computa === 'economia962' && econ962 > 0) valorCaso = `economia de ${fmt(econ962)}`;
+      return `<tr>
+        <td><strong>${esc(t.nome)}</strong><div class="rd-st">${esc(t.status)}</div></td>
+        <td class="num" style="white-space:normal">${valorCaso}</td>
+        <td>${esc(t.recomendacao)}</td>
+        <td><span class="rd-urg ${urgCls(t.urgencia)}">${esc(t.urgencia)}</span></td></tr>`;
+    }).join('');
+    return `<h2 id="sec-radar">6. Radar de teses judiciais <span class="rd-ver">status verificado em ${esc(R.VERIFICADO)}</span></h2>
+      <p style="font-size:12px;color:#5a6a78;margin:2px 0 6px">Teses federais aplicáveis ao perfil, com o estado jurisprudencial na data de verificação. Valores marcados ⚖ nos capítulos anteriores dependem destas frentes e não integram o caixa firme.</p>
+      <table class="radar"><thead><tr><th>Tese e status</th><th>Valor no caso</th><th>Recomendação</th><th>Urgência</th></tr></thead><tbody>${linhas}</tbody></table>`;
+  }
+
   function montarHtml(ativo, achados, opts) {
     opts = opts || {};
     const cnpj = ativo.cnpj;
@@ -8449,9 +8536,15 @@ window.Laudo = (function () {
     const temas = temasDe(achados);
     const tot = { estadual: { credito: 0, creditoC: 0, risco: 0, riscoC: 0, erro: 0, n: 0 },
                   federal: { credito: 0, creditoC: 0, risco: 0, riscoC: 0, erro: 0, n: 0 } };
+    let condV = 0, condVC = 0, econ962 = 0;
     for (const t of temas) {
       tot[t.esfera][t.nat] += t.v;
-      if (t.nat === 'credito') tot[t.esfera].creditoC += t.vc;
+      if (t.nat === 'credito') {
+        tot[t.esfera].creditoC += t.vc;
+        if (t.cond) { condV += t.v; condVC += t.vc; }
+        // Tema 962: a Selic recuperada nos créditos federais FIRMES não sofre IRPJ/CSLL
+        else if (t.esfera === 'federal' && t.vc > t.v) econ962 += (t.vc - t.v) * 0.34;
+      }
       else if (t.nat === 'risco') tot[t.esfera].riscoC += t.vc;
       tot[t.esfera].n += t.n;
     }
@@ -8495,6 +8588,17 @@ window.Laudo = (function () {
       + 'td{border-bottom:1px solid #e7edf2;padding:6px 9px;vertical-align:top}.num{text-align:right;font-family:Arial;white-space:nowrap}.mono{font-family:monospace;font-size:11px}'
       + '.det{font-size:11.5px;color:#5a6a78;margin-top:3px}.bl{font-size:11px;color:#5a6a78;background:#f5f8fb;border-left:3px solid #FF6B35;padding:5px 9px;margin:6px 0 2px;border-radius:3px}'
       + '.vazio{color:#5a6a78;font-style:italic}.tot-click{cursor:pointer}.tot-click:hover td{background:#f5f8fb}.tot-click .seta{color:#98a5b0;font-size:11px}'
+      + '.indice{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;background:#f5f8fb;border:1px solid #dfe7ee;border-radius:10px;padding:9px 13px;margin:14px 0 4px;font-family:Arial;font-size:11.5px}'
+      + '.indice .ind-tit{font-weight:800;color:#16365B;letter-spacing:.5px;text-transform:uppercase;font-size:10px;margin-right:4px}'
+      + '.indice a{color:#1f4e78;text-decoration:none;padding:2px 8px;border-radius:14px;background:#fff;border:1px solid #dfe7ee}.indice a:hover{border-color:#FF6B35;color:#FF6B35}'
+      + '.cond-row td{background:#faf7fd;font-size:11.6px}'
+      + '.nota-962{background:#eef7f0;border-left:4px solid #1a7f4b;border-radius:6px;padding:9px 13px;font-size:12.3px}'
+      + '.badge-cond{font-family:Arial;font-size:10px;font-weight:700;padding:2px 9px;border-radius:20px;background:#f1e9fa;color:#6b3fa0;border:1px dashed #6b3fa0;vertical-align:middle;margin-left:6px}'
+      + '.rd-ver{font-family:Arial;font-size:10px;font-weight:400;color:#5a6a78;margin-left:8px}'
+      + '.radar .rd-st{font-size:11px;color:#5a6a78;margin-top:3px;line-height:1.45}'
+      + '.rd-urg{font-family:Arial;font-size:10px;font-weight:800;padding:3px 9px;border-radius:14px;white-space:nowrap}'
+      + '.rd-urg.u-max{background:#fdecea;color:#c0392b;border:1px solid #c0392b}.rd-urg.u-alta{background:#fdf3e7;color:#b26a00}.rd-urg.u-med{background:#eef3f8;color:#1f4e78}'
+      + 'h3,table,.bl{break-inside:avoid}'
       + '.rodape{margin-top:34px;border-top:2px solid #e3eaf0;padding-top:12px;font-size:12px;color:#5a6a78;display:flex;justify-content:space-between;align-items:flex-end}'
       + '.assin{text-align:center}.assin .linha{border-top:1px solid #1d2b36;width:250px;margin:34px auto 4px}'
       + '.toolbar{position:fixed;top:12px;right:14px;display:flex;gap:8px;font-family:Arial}.toolbar button{background:#FF6B35;color:#fff;border:none;border-radius:8px;padding:10px 16px;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.25)}'
@@ -8507,12 +8611,20 @@ window.Laudo = (function () {
       + '<h1>LAUDO DE AUDITORIA FISCAL</h1><p class="subt">Exposições e oportunidades — esferas estadual e federal · Emitido em ' + hoje + '</p>'
       + '<div class="dados"><div><b>Contribuinte:</b> ' + esc(ativo.razao_social || '-') + '</div><div><b>CNPJ:</b> ' + esc(fmtCnpj(cnpj)) + '</div>'
       + '<div><b>UF:</b> ' + esc(ativo.uf || 'MG') + '</div><div><b>Regime especial:</b> ' + regimeTxt + '</div></div>'
-      + '<h2>1. Resumo executivo</h2><div class="edit" contenteditable="true" id="ed-resumo">' + esc(resumo) + '</div>'
+      + `<nav class="indice"><span class="ind-tit">Índice</span>
+          <a href="#sec-1">1. Resumo</a><a href="#sec-2">2. Quadro-síntese</a><a href="#sec-3">3. Totalizador</a>
+          <a href="#sec-est">4. Estadual</a><a href="#sec-fed">5. Federal</a><a href="#sec-radar">6. Radar de teses</a>
+          <a href="#sec-plano">7. Plano de ação</a><a href="#sec-metod">8. Metodologia</a><a href="#sec-concl">9. Conclusão</a></nav>`
+      + '<h2 id="sec-1">1. Resumo executivo</h2><div class="edit" contenteditable="true" id="ed-resumo">' + esc(resumo) + '</div>'
       + quadroSinteseHtml(temas)
-      + '<h2>3. Totalizador — estadual × federal</h2>'
+      + '<h2 id="sec-3">3. Totalizador — estadual × federal</h2>'
       + '<table><thead><tr><th>Esfera</th><th style="text-align:right">💰 Oportunidades</th><th style="text-align:right">💹 corrigido</th><th style="text-align:right">⚠️ Riscos</th><th style="text-align:right">💹 corrigido</th><th style="text-align:right">🛠️ Erros</th><th style="text-align:right">Achados</th></tr></thead><tbody>'
       + linhaTot('Estadual — ICMS', 'estadual', 'sec-est')
       + linhaTot('Federal', 'federal', 'sec-fed')
+      + (condV > 0 ? `<tr class="cond-row"><td style="padding-left:22px">⚖ dos quais CONDICIONADOS a tese judicial (Tema 843)</td>
+          <td class="num" style="color:#6b3fa0;font-weight:700">${fmt(condV)}</td>
+          <td class="num" style="color:#6b3fa0">${fmt(condVC)}</td>
+          <td class="num">—</td><td class="num">—</td><td class="num">—</td><td class="num"></td></tr>` : '')
       + `<tr style="font-weight:800;background:#eaf0f6"><td>TOTAL</td>
           <td class="num" style="color:#1a7f4b">${fmt(totalCred)}</td>
           <td class="num" style="color:#1a7f4b">${fmt(tot.estadual.creditoC + tot.federal.creditoC)}</td>
@@ -8522,6 +8634,7 @@ window.Laudo = (function () {
           <td class="num">${(tot.estadual.n + tot.federal.n)}</td></tr>`
       + '</tbody></table>'
       + '<p style="font-size:11.5px;color:#5a6a78">ICMS: o aproveitamento é por inscrição estadual (cada filial usa o próprio crédito). Tributos federais consolidam no CNPJ raiz. Clique nas linhas para ir direto à seção.</p>'
+      + (econ962 > 0 ? `<p class="nota-962">💡 <strong>Tema 962/STF:</strong> a Selic embutida nos créditos federais firmes (${fmt(tot.federal.creditoC - tot.federal.credito - (condVC - condV))}) não deve ser oferecida a IRPJ/CSLL — <strong>economia adicional de ${fmt(econ962)}</strong> a observar na escrituração dos PER/DCOMPs.</p>` : '')
       + ((achados || []).length === 0
         ? '<p style="background:#fdf3e7;border-left:4px solid #FF6B35;border-radius:6px;padding:10px 14px;font-size:12.5px"><b>Sem achados persistidos.</b> Rode as auditorias (aba Auditorias → Rodar) antes de gerar o laudo — o totalizador acima ficará zerado até lá.</p>'
         : '')
@@ -8530,10 +8643,11 @@ window.Laudo = (function () {
         : '')
       + secaoEsferaHtml(temas, 'estadual', 4, 'Esfera estadual (ICMS/MG)')
       + secaoEsferaHtml(temas, 'federal', 5, 'Esfera federal')
-      + '<h2>6. Plano de ação</h2>' + planoHtml(temas, cnpj)
-      + '<h2>7. Metodologia e fontes</h2>'
+      + radarHtml(temas, condV, condVC, econ962)
+      + '<h2 id="sec-plano">7. Plano de ação</h2>' + planoHtml(temas, cnpj)
+      + '<h2 id="sec-metod">8. Metodologia e fontes</h2>'
       + '<p>Trabalhos executados sobre a escrituração fiscal digital do contribuinte (EFD ICMS/IPI e EFD-Contribuições), a ECD/ECF, o espelho integral das NF-e (XML) e as tabelas oficiais (PMPF SEFAZ/MG e texto do regime especial, quando configurado). As verificações incluem reconciliação da apuração e sub-apuração, recálculo da ST contra o PMPF, balanço FIFO dos insumos em poder de terceiros com aging de 180 dias, condições do regime especial (produção × limite, meta de arrecadação × IPCA, conteúdo de importação), subvenção × e-Lalur (M300/N630) e apuração de IPI (E520). Cada tese traz a própria base legal na respectiva seção.</p>'
-      + '<h2>8. Conclusão</h2><div class="edit" contenteditable="true" id="ed-conclusao">' + esc(conclusao) + '</div>'
+      + '<h2 id="sec-concl">9. Conclusão</h2><div class="edit" contenteditable="true" id="ed-conclusao">' + esc(conclusao) + '</div>'
       + '<div class="rodape"><div>Prime Consultoria · contato@conectaon.net · (31) 99391-2890<br>Documento de trabalho técnico; não substitui parecer jurídico para contencioso.</div>'
       + '<div class="assin"><div class="linha"></div><b>Prime Consultoria</b><br>Auditoria Fiscal</div></div>'
       + '</div><script>'
@@ -10159,6 +10273,7 @@ const Auditorias = (function () {
       g110, g125, c197, e111, c101,
       r1920, r1926, e110r, e210r, e520r,
       n620, n630, n660, n670, m300ecf,
+      d100fis, d100ctb, c190fis,
     ] = await Promise.all([
       g('rev_xml_itens'), g('rev_itens'), g('rev_documentos'),
       g('rev_retencoes'), g('rev_saldos_contabeis'), g('rev_apuracao_pis_cofins'),
@@ -10170,6 +10285,8 @@ const Auditorias = (function () {
       stg('efd_fiscal', 'E210'), stg('efd_fiscal', 'E520'),
       stg('ecf', 'N620'), stg('ecf', 'N630'), stg('ecf', 'N660'), stg('ecf', 'N670'),
       stg('ecf', 'M300'),
+      stg('efd_fiscal', 'D100'), stg('efd_contrib', 'D100'),
+      stg('efd_fiscal', 'C190'),
     ]);
 
     // índice de produtos por cod_item (pega o tipo_item / ncm / descrição do 0200).
@@ -10187,6 +10304,8 @@ const Auditorias = (function () {
       ciap: { g110, g125 }, ajustes: { c197, e111, c101 },
       apuracao: { r1920, r1926, e110: e110r, e210: e210r, e520: e520r },
       ecf: { n620, n630, n660, n670, m300: m300ecf },
+      d100: { fis: d100fis, ctb: d100ctb },
+      c190: c190fis,
     };
   }
 
@@ -12011,6 +12130,11 @@ const UIAuditorias = (function () {
     mg_reg_importacao: 'Conteúdo de importação (regime)',
     fed_subvencao: 'Subvenção não excluída (IRPJ/CSLL)',
     fed_ipi_saldo: 'Saldo credor de IPI acumulado',
+    fed_insumo_ampliado: 'Insumos ampliados — Tema 779 (fretes/uso e consumo)',
+    mg_devolucao: 'Devoluções de venda — ICMS próprio/ST/volume',
+    fed_tema843: 'Tema 843/STF — PIS/COFINS sobre crédito presumido (condicionado)',
+    fed_devolucao: 'Devoluções de venda — PIS/COFINS',
+    mg_pos_regime: 'Créditos ordinários pós-regime',
     xml_nao_escriturado: 'Nota não escriturada',
     icms_base_pis_cofins: 'ICMS na base PIS/COFINS',
     reinf_retencao: 'Retenção Reinf',
@@ -12326,8 +12450,9 @@ const UIAuditorias = (function () {
     const grupos = {};
     for (const a of achados) {
       if ((a.natureza || 'risco') !== nat) continue;
-      const g = (grupos[a._regra] = grupos[a._regra] || { v: 0, vc: 0, n: 0, fil: new Set(), per: new Set(), nome: '' });
+      const g = (grupos[a._regra] = grupos[a._regra] || { v: 0, vc: 0, n: 0, fil: new Set(), per: new Set(), nome: '', cond: false });
       g.v += Number(a.valor) || 0; g.vc += corrigidoDe(a); g.n++;
+      if (a.condicionado) g.cond = true;
       if (a.cnpj_empresa) g.fil.add(a.cnpj_empresa);
       if (a.periodo) g.per.add(a.periodo);
       if (!g.nome) g.nome = TIPO_ROTULO[a.tipo] || a.titulo || a.tipo;
@@ -12347,6 +12472,7 @@ const UIAuditorias = (function () {
           <div class="aud-tema-top">
             <span class="aud-tema-id">${Utils.escapeHtml(id)}</span>
             <span style="display:flex;align-items:center;gap:6px">
+              ${g.cond ? '<span class="aud-tema-cond" title="Crédito condicionado a tese judicial pendente — ver Radar no laudo">⚖ condicionado</span>' : ''}
               <span class="aud-tema-esf ${esf === 'federal' ? 'fed' : 'est'}">${esf === 'federal' ? 'FEDERAL' : 'ICMS · MG'}</span>
               <button class="aud-tema-toggle${off ? ' off' : ''}" data-toggle="${Utils.escapeHtml(id)}"
                 title="${off ? 'Tema fora do totalizador — clique para reincluir' : 'Clique para excluir este tema do totalizador'}">⏻</button>
@@ -12425,6 +12551,11 @@ const UIAuditorias = (function () {
     const falt = window.Selic ? Selic.faltantesAte() : [];
     const notaSelic = `<p style="font-size:11.5px;color:var(--texto-fraco);margin:6px 0 0">📈 Corrigido pela Selic acumulada (regra RFB: soma das taxas do mês seguinte à competência + 1% no mês atual). <strong>Créditos estaduais NÃO corrigem</strong>: o aproveitamento escritural de ICMS é pelo valor nominal (RICMS/MG, art. 67, § 2º). Consolidados/sem competência mensal também não.</p>`
       + (falt.length ? `<p style="font-size:11.5px;color:#b26a00;margin:4px 0 0">⚠️ A tabela Selic está sem taxa em: ${falt.join(', ')} — inclua no editor para a correção ficar completa.</p>` : '');
+    let condTot = 0, condTotC = 0;
+    for (const a of ativos) if (a.condicionado && a.natureza === 'credito') { condTot += Number(a.valor) || 0; condTotC += corrigidoDe(a); }
+    const notaCond = condTot > 0
+      ? `<p style="font-size:11.5px;color:#6b3fa0;margin:6px 0 0">⚖ Das oportunidades acima, <strong>${fmt(condTot)}</strong> (corrigido ${fmt(condTotC)}) são CONDICIONADAS a tese judicial pendente (Tema 843/STF) — exigem ação própria; ver o Radar de teses no laudo.</p>`
+      : '';
     const nota = _temasOff.size
       ? `<p style="font-size:11.5px;color:#b26a00;margin:6px 0 0">⏻ ${_temasOff.size} tema(s) excluído(s) do totalizador pelo auditor: ${[..._temasOff].join(', ')} — clique no ⏻ do tema para reincluir. O laudo respeita esta seleção.</p>`
       : '';
@@ -12442,6 +12573,7 @@ const UIAuditorias = (function () {
           </tbody>
         </table>
         ${notaSelic}
+        ${notaCond}
         ${nota}
       </div>`;
   }
@@ -14178,7 +14310,228 @@ window.UIDossiePrograma = UIDossiePrograma;
     return { achados: [a], resumo: 'saldo credor relevante' };
   }
 
+  const LD100 = ['REG','IND_OPER','IND_EMIT','COD_PART','COD_MOD','COD_SIT','SER','SUB','NUM_DOC','CHV_CTE','DT_DOC','DT_A_P','TP_CTE','CHV_CTE_REF','VL_DOC','VL_DESC','IND_FRT','VL_SERV','VL_BC_ICMS','VL_ICMS','VL_NT','COD_INF','COD_CTA'];
+
+  function fed779(ctx, idAud, api) {
+    const fis = (ctx.d100 && ctx.d100.fis) || [];
+    if (!fis.length) return { achados: [], resumo: 'sem CT-e (D100) na EFD fiscal', status: 'sem_dados' };
+    const naCtb = new Set();
+    for (const r of ((ctx.d100 && ctx.d100.ctb) || [])) {
+      const c = campos(r, LD100);
+      if (c.CHV_CTE) naCtb.add(String(c.CHV_CTE));
+    }
+    let base = 0, qtd = 0; const porAno = {};
+    for (const r of fis) {
+      const c = campos(r, LD100);
+      if (String(c.IND_OPER || '') !== '0') continue;              // só aquisição de serviço de transporte
+      const ch = String(c.CHV_CTE || '');
+      if (!ch || naCtb.has(ch)) continue;                          // já está na Contribuições
+      const v = n(c.VL_DOC); base += v; qtd++;
+      const ano = String(r.periodo || '').slice(0, 4);
+      porAno[ano] = (porAno[ano] || 0) + v;
+    }
+    // uso e consumo (1556/2556): teto qualificável por laudo de essencialidade
+    let usoBase = 0;
+    for (const it of (ctx.itens || [])) if (['1556', '2556', '1407', '2407'].includes(it.cfop)) usoBase += n(it.vl_item);
+    const cred = base * 0.0925, teto = usoBase * 0.0925;
+    if (cred < PISO && teto < PISO) return { achados: [], resumo: 'fretes integralmente creditados e uso/consumo imaterial' };
+    const achados = [];
+    if (cred >= PISO) {
+      achados.push(api.novoAchado(ctx.cnpj, idAud, 'fed_insumo_ampliado', {
+        periodo: '(consolidado)', natureza: 'credito', severidade: api.sev(cred),
+        titulo: `Fretes de aquisição fora da EFD-Contribuições: ${qtd} CT-e sem crédito (R$ ${Math.round(cred).toLocaleString('pt-BR')})`,
+        descricao: `${qtd} CT-e de aquisição de serviço de transporte (D100 da EFD fiscal, base R$ ${Math.round(base).toLocaleString('pt-BR')}) não constam da EFD-Contribuições — crédito de PIS/COFINS de 9,25% não apropriado. Frete na aquisição de insumos integra o custo (crédito pacífico); frete entre estabelecimentos ampara-se no conceito ampliado de insumo (STJ Tema 779). Adicionalmente, há R$ ${Math.round(usoBase).toLocaleString('pt-BR')} em uso e consumo (CFOP 1556/2556) com crédito potencial de até R$ ${Math.round(teto).toLocaleString('pt-BR')}, a qualificar por laudo de essencialidade.`,
+        valor: cred,
+        base_legal: 'Leis 10.637/02 e 10.833/03 (créditos da não-cumulatividade); STJ, REsp 1.221.170 (Tema 779): insumo pelo critério da essencialidade/relevância.',
+        referencias: [{ cte_fora: qtd, base_fretes: base, teto_uso_consumo: Math.round(teto), base_uso_consumo: usoBase }, porAno],
+      }));
+    }
+    return { achados, resumo: achados.length ? 'fretes sem crédito identificados' : `só o teto de uso/consumo (R$ ${Math.round(teto).toLocaleString('pt-BR')}) a qualificar` };
+  }
+
+  function mgPos1(ctx, idAud, api) {
+    const RV = ENV.RegimeVigencia;
+    const vig = RV ? RV.obter(ctx.cnpj) : {};
+    if (!vig || !vig.fim) return { achados: [], resumo: 'sem fim de regime configurado (apuração normal contínua)', status: 'sem_dados' };
+    // destacado nas entradas por período pós-regime
+    const dest = {};
+    for (const it of (ctx.itens || [])) {
+      const per = String(it.periodo || '').slice(0, 7);
+      if (per <= vig.fim) continue;
+      if (!/^[123]/.test(it.cfop || '')) continue;
+      dest[per] = (dest[per] || 0) + n(it.vl_icms);
+    }
+    // creditado na apuração (E110) por período
+    const cred = {};
+    for (const r of ((ctx.apuracao && ctx.apuracao.e110) || [])) {
+      const per = String(r.periodo || '').slice(0, 7);
+      if (per <= vig.fim) continue;
+      const c = campos(r, LE110);
+      cred[per] = (cred[per] || 0) + n(c.VL_TOT_CREDITOS) + n(c.VL_TOT_AJ_CREDITOS);
+    }
+    const achados = [];
+    const pers = Object.keys(dest).sort();
+    for (const per of pers) {
+      const gap = (dest[per] || 0) - (cred[per] || 0);
+      if (gap > PISO * 5) {
+        achados.push(api.novoAchado(ctx.cnpj, idAud, 'mg_pos_regime', {
+          periodo: per, natureza: 'credito', severidade: api.sev(gap),
+          titulo: `Créditos de ICMS não apropriados após o fim do regime (${per})`,
+          descricao: `ICMS destacado nas entradas de R$ ${Math.round(dest[per]).toLocaleString('pt-BR')} contra créditos escriturados de R$ ${Math.round(cred[per] || 0).toLocaleString('pt-BR')} na apuração (E110). Com o fim do regime de crédito presumido, todos os créditos ordinários voltaram a ser apropriáveis.`,
+          valor: gap,
+          base_legal: 'LC 87/96, arts. 19-20 (não-cumulatividade); fim do regime especial restabelece o creditamento ordinário. Aproveitamento pelo valor nominal (RICMS/MG, art. 67, § 2º).',
+          referencias: [{ destacado: dest[per], creditado: cred[per] || 0 }],
+        }));
+      }
+    }
+    if (!achados.length && pers.length) {
+      return { achados, resumo: `apropriação plena conferida em ${pers.length} período(s) pós-regime (creditado ≥ destacado)` };
+    }
+    return { achados, resumo: achados.length ? `${achados.length} período(s) com crédito não apropriado` : 'sem períodos pós-regime nos dados' };
+  }
+
+  const LC190 = ['REG','CST_ICMS','CFOP','ALIQ_ICMS','VL_OPR','VL_BC_ICMS','VL_ICMS','VL_BC_ICMS_ST','VL_ICMS_ST','VL_RED_BC','VL_IPI','COD_OBS'];
+  const CFOP_DEV = new Set(['1201', '2201', '1202', '2202', '1410', '2410', '1411', '2411']);
+
+  function mgDev1(ctx, idAud, api) {
+    const c190 = ctx.c190 || [];
+    if (!c190.length) return { achados: [], resumo: 'sem C190 na escrituração importada', status: 'sem_dados' };
+    // consolidação das devoluções por ano (universo completo)
+    const dev = {};   // ano -> { opr, icms, st }
+    for (const r of c190) {
+      const c = campos(r, LC190);
+      if (!CFOP_DEV.has(String(c.CFOP || ''))) continue;
+      const ano = String(r.periodo || '').slice(0, 4);
+      const d = (dev[ano] = dev[ano] || { opr: 0, icms: 0, st: 0 });
+      d.opr += n(c.VL_OPR); d.icms += n(c.VL_ICMS); d.st += n(c.VL_ICMS_ST);
+    }
+    const anos = Object.keys(dev).sort();
+    if (!anos.length) return { achados: [], resumo: 'sem devoluções de venda na escrituração' };
+    const stDev = anos.reduce((s, a) => s + dev[a].st, 0);
+    // ST lançado na apuração (E210 VL_DEVOL_ST)
+    let stE210 = 0;
+    for (const r of ((ctx.apuracao && ctx.apuracao.e210) || [])) stE210 += n(campos(r, LE210).VL_DEVOL_ST);
+    const achados = [];
+    const dif = stDev - stE210;
+    if (Math.abs(dif) > PISO) {
+      achados.push(api.novoAchado(ctx.cnpj, idAud, 'mg_devolucao', {
+        periodo: '(consolidado)', natureza: dif > 0 ? 'credito' : 'risco', severidade: api.sev(Math.abs(dif)),
+        titulo: dif > 0
+          ? `ICMS-ST das devoluções não recuperado integralmente (R$ ${Math.round(dif).toLocaleString('pt-BR')})`
+          : `ICMS-ST de devolução lançado a maior na apuração (R$ ${Math.round(-dif).toLocaleString('pt-BR')})`,
+        descricao: `ST consolidado nas devoluções de venda (C190): R$ ${Math.round(stDev).toLocaleString('pt-BR')} × VL_DEVOL_ST lançado na apuração ST (E210): R$ ${Math.round(stE210).toLocaleString('pt-BR')}. ${dif > 0 ? 'A diferença é ST de operações desfeitas ainda recuperável.' : 'Abatimento superior ao lastro das devoluções escrituradas: recompor item a item.'}`,
+        valor: Math.abs(dif),
+        base_legal: 'RICMS/MG, Anexo XV (ressarcimento/estorno do ICMS-ST na devolução); LC 87/96.',
+        referencias: [{ st_c190: Math.round(stDev), st_e210: Math.round(stE210) }],
+      }));
+    }
+    // gap de ICMS próprio: devoluções tributáveis sem crédito escriturado no item
+    let gapIcms = 0, gapVal = 0;
+    for (const it of (ctx.itens || [])) {
+      if (!CFOP_DEV.has(it.cfop) || !['1201', '1410', '2201', '2410'].includes(it.cfop)) continue;
+      if (n(it.vl_icms) === 0 && n(it.vl_item) > 100) { gapVal += n(it.vl_item); gapIcms += n(it.vl_item) * 0.18; }
+    }
+    if (gapIcms > PISO) {
+      achados.push(api.novoAchado(ctx.cnpj, idAud, 'mg_devolucao', {
+        periodo: '(consolidado)', natureza: 'credito', severidade: api.sev(gapIcms),
+        titulo: `Devoluções tributáveis sem crédito de ICMS escriturado (teto R$ ${Math.round(gapIcms).toLocaleString('pt-BR')})`,
+        descricao: `Itens de devolução de venda tributável com vl_icms zerado somando R$ ${Math.round(gapVal).toLocaleString('pt-BR')} — o crédito do imposto debitado na saída original não foi escriturado (RICMS/MG, art. 66, V).`,
+        valor: gapIcms,
+        base_legal: 'RICMS/MG, art. 66, V (crédito na devolução). Aproveitamento pelo valor nominal (art. 67, § 2º).',
+        referencias: [{ valor_sem_credito: Math.round(gapVal) }],
+      }));
+    }
+    // alarme de volume: devolução ÷ receita do ano (XMLs de venda)
+    const recAno = {};
+    for (const x of (ctx.xmlItens || [])) {
+      if (x.tipo_operacao !== 'saida' || x.cancelada) continue;
+      const ano = String(x.periodo || '').slice(0, 4);
+      recAno[ano] = (recAno[ano] || 0) + n(x.vl_item);
+    }
+    for (const ano of anos) {
+      const r = recAno[ano] || 0;
+      if (!r || dev[ano].opr / r <= 0.15) continue;
+      const envolvidos = dev[ano].icms + dev[ano].st + dev[ano].opr * 0.08;
+      achados.push(api.novoAchado(ctx.cnpj, idAud, 'mg_devolucao', {
+        periodo: ano, natureza: 'risco', severidade: api.sev(envolvidos),
+        titulo: `Devoluções de ${(100 * dev[ano].opr / r).toFixed(1)}% da receita em ${ano} — lastro documental dos créditos`,
+        descricao: `Devoluções de R$ ${Math.round(dev[ano].opr).toLocaleString('pt-BR')} contra receita de R$ ${Math.round(r).toLocaleString('pt-BR')}. Cada devolução restitui ~38% em créditos (ICMS próprio, ST e PIS/COFINS): ~R$ ${Math.round(envolvidos).toLocaleString('pt-BR')} dependem de lastro (NF do cliente/entrada comprovada, motivo, baixa de estoque, trilha logística).`,
+        valor: envolvidos,
+        base_legal: 'RICMS/MG, art. 76 e Anexo XV (condições da devolução); Leis 10.637/10.833, art. 3º, VIII.',
+        referencias: [{ devolucoes: Math.round(dev[ano].opr), receita: Math.round(r), ratio_pct: Math.round(1000 * dev[ano].opr / r) / 10 }],
+      }));
+    }
+    return { achados, resumo: achados.length ? `${achados.length} apontamento(s) em devoluções` : `créditos de devolução íntegros: ST E210 = C190 (R$ ${Math.round(stE210).toLocaleString('pt-BR')}), próprio escriturado, volume dentro do padrão` };
+  }
+
+  function fedDev1(ctx, idAud, api) {
+    const devItens = (ctx.itens || []).filter(it => CFOP_DEV.has(it.cfop));
+    if (!devItens.length) return { achados: [], resumo: 'sem itens de devolução pareados', status: 'sem_dados' };
+    let vCred = 0, pcCred = 0, vFora = 0, nFora = 0;
+    for (const it of devItens) {
+      const cst = String(it.cst_pis || '');
+      const comCred = it.tem_efd_contrib && /^5[0-6]$/.test(cst);
+      if (comCred) { vCred += n(it.vl_item); pcCred += n(it.vl_pis) + n(it.vl_cofins); }
+      else { vFora += n(it.vl_item); nFora++; }
+    }
+    const aliq = vCred > 0 ? pcCred / vCred : 0.0925;
+    const perda = vFora * aliq;
+    if (perda < PISO) {
+      return { achados: [], resumo: `PIS/COFINS das devoluções creditado (alíquota implícita ${(100 * aliq).toFixed(1)}%); resíduo fora imaterial (R$ ${Math.round(perda).toLocaleString('pt-BR')})` };
+    }
+    return { achados: [api.novoAchado(ctx.cnpj, idAud, 'fed_devolucao', {
+      periodo: '(consolidado)', natureza: 'credito', severidade: api.sev(perda),
+      titulo: `Devoluções sem crédito de PIS/COFINS na Contribuições (R$ ${Math.round(perda).toLocaleString('pt-BR')})`,
+      descricao: `${nFora} item(ns) de devolução de venda (R$ ${Math.round(vFora).toLocaleString('pt-BR')}) fora da EFD-Contribuições ou sem CST de crédito — à alíquota implícita das próprias devoluções creditadas (${(100 * aliq).toFixed(2)}%), crédito não tomado de R$ ${Math.round(perda).toLocaleString('pt-BR')}.`,
+      valor: perda,
+      base_legal: 'Leis 10.637/02 e 10.833/03, art. 3º, VIII (devolução de vendas); Lei 13.097/2015 (bebidas frias).',
+      referencias: [{ itens_fora: nFora, valor_fora: Math.round(vFora), aliquota_implicita_pct: Math.round(10000 * aliq) / 100 }],
+    })], resumo: 'devoluções sem crédito identificadas' };
+  }
+
+  function fed843(ctx, idAud, api) {
+    const RV = ENV.RegimeVigencia;
+    const fl = RV ? RV.flags(ctx.cnpj) : {};
+    if (!fl.credito_presumido) return { achados: [], resumo: 'cliente sem regime de crédito presumido configurado', status: 'sem_dados' };
+    const ncm = String(fl.ncm_beneficiado || '');
+    // benefício por ano = destaque (vi×18% + ve×12%) − recolhido efetivo da sub-apuração (1920)
+    const vi = {}, ve = {};
+    for (const x of (ctx.xmlItens || [])) {
+      if (x.tipo_operacao !== 'saida' || x.cancelada) continue;
+      if (ncm && String(x.ncm || '').slice(0, ncm.length) !== ncm) continue;
+      const ano = String(x.periodo || '').slice(0, 4); const v = n(x.vl_item);
+      if (['5101', '5401'].includes(x.cfop)) vi[ano] = (vi[ano] || 0) + v;
+      else if (['6101', '6401', '6107', '6408'].includes(x.cfop)) ve[ano] = (ve[ano] || 0) + v;
+    }
+    const rec = {};
+    for (const r of ((ctx.apuracao && ctx.apuracao.r1920) || [])) {
+      const c = campos(r, L1920);
+      rec[String(r.periodo || '').slice(0, 4)] = (rec[String(r.periodo || '').slice(0, 4)] || 0) + n(c.VL_ICMS_RECOLHER_OA);
+    }
+    let benef = 0; const porAno = {};
+    for (const ano of new Set([...Object.keys(vi), ...Object.keys(ve)])) {
+      const b = Math.max((vi[ano] || 0) * 0.18 + (ve[ano] || 0) * 0.12 - (rec[ano] || 0), 0);
+      if (b > 0) { benef += b; porAno[ano] = Math.round(b); }
+    }
+    const valor = benef * 0.0925;
+    if (valor < PISO * 10) return { achados: [], resumo: 'benefício de crédito presumido imaterial para a tese' };
+    const st = (window.TesesRadar && TesesRadar.LISTA.find(t => t.id === 'TEMA-843')) || null;
+    return { achados: [api.novoAchado(ctx.cnpj, idAud, 'fed_tema843', {
+      periodo: '(consolidado)', natureza: 'credito', severidade: api.sev(valor), condicionado: true,
+      titulo: `⚖ CONDICIONADO (Tema 843/STF): PIS/COFINS sobre o crédito presumido — R$ ${Math.round(valor).toLocaleString('pt-BR')}`,
+      descricao: `Benefício real de crédito presumido apurado (destaque − recolhido da sub-apuração): R$ ${Math.round(benef).toLocaleString('pt-BR')} no período. A exclusão da base de PIS/COFINS (9,25%) devolve R$ ${Math.round(valor).toLocaleString('pt-BR')}, CONDICIONADA ao julgamento do Tema 843. ${st ? 'Status verificado em ' + TesesRadar.VERIFICADO + ': ' + st.status + ' Recomendação: ' + st.recomendacao : ''}`,
+      valor,
+      base_legal: 'STF, RE 835.818 (Tema 843); STJ, EREsp 1.517.492 (pacto federativo); Leis 10.637/02 e 10.833/03.',
+      referencias: [{ beneficio_total: Math.round(benef), aliquota: 9.25 }, porAno],
+    })], resumo: 'tese condicionada quantificada (ver Radar de teses no laudo)' };
+  }
+
   const REGRAS = [
+    { meta: { id: 'FED-843-1', tipo: 'fed_tema843', nome: 'Tema 843/STF: PIS/COFINS sobre o crédito presumido (condicionado)', fontes: ['rev_xml_itens', 'efd_staging'] }, fn: fed843 },
+    { meta: { id: 'MG-DEV-1', tipo: 'mg_devolucao', nome: 'Devoluções de venda: ICMS próprio, ST (E210 × C190) e volume', fontes: ['efd_staging', 'rev_itens'] }, fn: mgDev1 },
+    { meta: { id: 'FED-DEV-1', tipo: 'fed_devolucao', nome: 'Devoluções de venda × EFD-Contribuições (crédito art. 3º, VIII)', fontes: ['rev_itens'] }, fn: fedDev1 },
+    { meta: { id: 'FED-779-1', tipo: 'fed_insumo_ampliado', nome: 'Insumos ampliados (Tema 779): fretes × Contribuições + uso/consumo', fontes: ['efd_staging', 'rev_itens'] }, fn: fed779 },
+    { meta: { id: 'MG-POS-1', tipo: 'mg_pos_regime', nome: 'Créditos ordinários pós-regime (destacado × creditado)', fontes: ['rev_itens', 'efd_staging'] }, fn: mgPos1 },
     { meta: { id: 'MG-TERC-1', tipo: 'mg_terc_vencido', nome: 'Suspensão vencida — insumos em terceiros >180 dias', fontes: ['rev_itens', 'rev_xml_itens'] }, fn: mgTerc1 },
     { meta: { id: 'MG-TERC-2', tipo: 'mg_terc_saldo', nome: 'Crédito de estoque em poder de terceiros (≤180 dias)', fontes: ['rev_itens', 'rev_xml_itens'] }, fn: mgTerc2 },
     { meta: { id: 'MG-TERC-3', tipo: 'mg_terc_valoracao', nome: 'Retornos de industrialização subvalorados', fontes: ['rev_itens', 'rev_xml_itens'] }, fn: mgTerc3 },
@@ -14213,7 +14566,7 @@ const App = (function () {
   // A linha VERSAO_APP abaixo é atualizada automaticamente pelo
   // publicar-revisor.command (lê o versao.txt). Não editar na mão.
   // ------------------------------------------------------------------
-  const VERSAO_APP = '3.19.2';
+  const VERSAO_APP = '3.19.5';
   function cmpVersao(a, b) {
     const pa = String(a).split('.').map(n => parseInt(n, 10) || 0);
     const pb = String(b).split('.').map(n => parseInt(n, 10) || 0);
