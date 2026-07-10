@@ -749,6 +749,15 @@ body {
 .aud-esf-tit .aud-esf-tot { font-size: 12.5px; font-weight: 700; color: var(--texto-fraco); }
 .aud-tot-linha td { font-weight: 800; background: var(--bg-destaque); }
 .aud-tot-esf { cursor: pointer; } .aud-tot-esf:hover td { background: var(--bg-destaque); }
+.aud-btn-selic { margin-left: 10px; font-size: 11.5px; font-weight: 700; border: 1px solid var(--borda);
+  background: #fff; color: var(--primaria); border-radius: 8px; padding: 4px 10px; cursor: pointer; }
+.aud-btn-selic:hover { border-color: var(--primaria); }
+.aud-tema-corr { font-size: 11.5px; color: #1f4e78; font-weight: 700; margin-top: -2px; }
+.aud-valor-corr { font-size: 11px; color: #1f4e78; font-weight: 700; }
+.selic-grid input { width: 58px; padding: 3px 4px; border: 1px solid var(--borda); border-radius: 5px; font-size: 11.5px; text-align: right; }
+.selic-grid td, .selic-grid th { padding: 3px 4px; }
+.selic-inp.selic-ov { background: #fdf3e7; border-color: #FF6B35; }
+.selic-inp.selic-vazio { background: #f5f8fb; border-style: dashed; }
 .aud-det-bloco { font-family: var(--ff-display); font-weight: 800; font-size: 13px; letter-spacing: .4px;
   padding: 9px 14px; border-radius: 10px; margin: 14px 0 8px; }
 .aud-det-bloco.est { background: #e8f0fa; color: #1f4e78; border-left: 5px solid #1f4e78; }
@@ -8091,6 +8100,201 @@ const UIBanco = (function () {
 window.UIBanco = UIBanco;
 
 
+// ===================== selic.js =====================
+// Tabela Selic mensal + correção de valores (regra RFB: soma simples das taxas
+// do mês SEGUINTE ao da competência até o mês ANTERIOR ao atual, + 1% no mês
+// atual). Tabela embutida até 2026-06; qualquer mês pode ser ajustado e meses
+// futuros podem ser incluídos manualmente (persistem no navegador).
+window.Selic = (function () {
+  // taxas mensais em % (fonte: RFB/Bacen — conferir os meses recentes e ajustar no editor se necessário)
+  // conferida em 09/07/2026 contra a tabela divulgada pela RFB (2019-01 a 2026-06)
+  const OFICIAL = {
+    '2019-01':0.54,'2019-02':0.49,'2019-03':0.47,'2019-04':0.52,'2019-05':0.54,'2019-06':0.47,
+    '2019-07':0.57,'2019-08':0.50,'2019-09':0.46,'2019-10':0.48,'2019-11':0.38,'2019-12':0.37,
+    '2020-01':0.38,'2020-02':0.29,'2020-03':0.34,'2020-04':0.28,'2020-05':0.24,'2020-06':0.21,
+    '2020-07':0.19,'2020-08':0.16,'2020-09':0.16,'2020-10':0.16,'2020-11':0.15,'2020-12':0.16,
+    '2021-01':0.15,'2021-02':0.13,'2021-03':0.20,'2021-04':0.21,'2021-05':0.27,'2021-06':0.31,
+    '2021-07':0.36,'2021-08':0.43,'2021-09':0.44,'2021-10':0.49,'2021-11':0.59,'2021-12':0.77,
+    '2022-01':0.73,'2022-02':0.76,'2022-03':0.93,'2022-04':0.83,'2022-05':1.03,'2022-06':1.02,
+    '2022-07':1.03,'2022-08':1.17,'2022-09':1.07,'2022-10':1.02,'2022-11':1.02,'2022-12':1.12,
+    '2023-01':1.12,'2023-02':0.92,'2023-03':1.17,'2023-04':0.92,'2023-05':1.12,'2023-06':1.07,
+    '2023-07':1.07,'2023-08':1.14,'2023-09':0.97,'2023-10':1.00,'2023-11':0.92,'2023-12':0.89,
+    '2024-01':0.97,'2024-02':0.80,'2024-03':0.83,'2024-04':0.89,'2024-05':0.83,'2024-06':0.79,
+    '2024-07':0.91,'2024-08':0.87,'2024-09':0.84,'2024-10':0.93,'2024-11':0.79,'2024-12':0.93,
+    '2025-01':1.01,'2025-02':0.99,'2025-03':0.96,'2025-04':1.06,'2025-05':1.14,'2025-06':1.10,
+    '2025-07':1.28,'2025-08':1.16,'2025-09':1.22,'2025-10':1.28,'2025-11':1.05,'2025-12':1.22,
+    '2026-01':1.16,'2026-02':1.00,'2026-03':1.21,'2026-04':1.09,'2026-05':1.07,'2026-06':1.12,
+  };
+  const KEY = 'revisor_selic_overrides';
+  function overrides() {
+    try { return JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) { return {}; }
+  }
+  function tabela() { return Object.assign({}, OFICIAL, overrides()); }
+  function taxa(per) { const t = tabela()[per]; return (t == null || t === '') ? null : Number(t); }
+  function salvar(per, tx) {
+    if (!/^\d{4}-\d{2}$/.test(per || '')) return false;
+    const ov = overrides();
+    if (tx == null || tx === '') delete ov[per]; else ov[per] = Number(tx);
+    try { localStorage.setItem(KEY, JSON.stringify(ov)); return true; } catch (e) { return false; }
+  }
+  function restaurarPadrao() { try { localStorage.removeItem(KEY); } catch (e) {} }
+  function ehOverride(per) { return Object.prototype.hasOwnProperty.call(overrides(), per); }
+  function ehOficial(per) { return Object.prototype.hasOwnProperty.call(OFICIAL, per); }
+
+  const mesAtual = () => new Date().toISOString().slice(0, 7);
+  function proxMes(per) {
+    let [a, m] = per.split('-').map(Number); m++; if (m > 12) { m = 1; a++; }
+    return `${a}-${String(m).padStart(2, '0')}`;
+  }
+
+  /**
+   * Percentual acumulado (soma simples) da competência `perOrigem` até `perFim`
+   * pela regra RFB: taxas do mês seguinte à competência até o mês anterior ao
+   * fim, + 1% no mês do fim. Retorna { pct, meses, faltantes[] }.
+   */
+  function acumuladoPct(perOrigem, perFim) {
+    perFim = perFim || mesAtual();
+    if (!/^\d{4}-\d{2}$/.test(perOrigem || '') || perOrigem >= perFim) return { pct: 0, meses: 0, faltantes: [] };
+    const T = tabela();
+    let pct = 0, meses = 0; const faltantes = [];
+    for (let p = proxMes(perOrigem); p < perFim; p = proxMes(p)) {
+      const t = T[p];
+      if (t == null || t === '') faltantes.push(p); else pct += Number(t);
+      meses++;
+      if (meses > 600) break; // trava de segurança
+    }
+    pct += 1.0; meses++; // 1% do mês do fim (RFB)
+    return { pct, meses, faltantes };
+  }
+
+  /** Corrige um valor da competência até hoje: { original, pct, juros, corrigido, faltantes } */
+  function corrigir(valor, perOrigem, perFim) {
+    const v = Number(valor) || 0;
+    // achados consolidados/anuais não têm competência mensal → sem correção automática
+    if (!/^\d{4}-\d{2}$/.test(perOrigem || '')) return { original: v, pct: 0, juros: 0, corrigido: v, faltantes: [], aplicada: false };
+    const a = acumuladoPct(perOrigem, perFim);
+    const juros = v * a.pct / 100;
+    return { original: v, pct: a.pct, juros, corrigido: v + juros, faltantes: a.faltantes, aplicada: true };
+  }
+
+  /** Corrige o período de um ACHADO ('AAAA-MM' | 'AAAA' → dez do ano | consolidado → sem correção). */
+  function corrigirAchado(a, perFim) {
+    let per = a && a.periodo || '';
+    if (/^\d{4}$/.test(per)) per = per + '-12';
+    return corrigir(a && a.valor, per, perFim);
+  }
+
+  /** Meses sem taxa entre o início da tabela e `perFim` (pra alertar no editor). */
+  function faltantesAte(perFim) {
+    perFim = perFim || mesAtual();
+    const T = tabela();
+    const out = [];
+    for (let p = '2019-01'; p < perFim; p = proxMes(p)) if (T[p] == null) out.push(p);
+    return out;
+  }
+
+  return { tabela, taxa, salvar, restaurarPadrao, ehOverride, ehOficial, mesAtual, proxMes, acumuladoPct, corrigir, corrigirAchado, faltantesAte, _OFICIAL: OFICIAL };
+})();
+
+
+// ===================== memoria_calculo.js =====================
+// Relatório Excel (SpreadsheetML) com a memória de cálculo da correção Selic:
+// aba 1 = achado a achado (original, política, competência, % acumulada, juros,
+// corrigido); aba 2 = totais por tese; aba 3 = a tabela Selic usada.
+window.MemoriaCalculo = (function () {
+  const xe = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  const cS = (v, st) => `<Cell${st ? ` ss:StyleID="${st}"` : ''}><Data ss:Type="String">${xe(v)}</Data></Cell>`;
+  const cN = (v, st) => `<Cell ss:StyleID="${st || 'n'}"><Data ss:Type="Number">${Number(v) || 0}</Data></Cell>`;
+  const row = (cels) => `<Row>${cels.join('')}</Row>`;
+
+  function politicaDe(a, esfera) {
+    if (a.natureza === 'credito' && esfera === 'estadual')
+      return { aplica: false, motivo: 'Crédito escritural de ICMS: valor nominal (RICMS/MG, art. 67, § 2º; sem lei estadual de correção)' };
+    let per = a.periodo || '';
+    if (/^\d{4}$/.test(per)) per = per + '-12';
+    if (!/^\d{4}-\d{2}$/.test(per))
+      return { aplica: false, motivo: 'Sem competência mensal (achado consolidado): correção manual, se cabível' };
+    return { aplica: true, motivo: 'Selic (regra RFB: soma mensal do mês seguinte + 1% no mês atual)', per };
+  }
+
+  function montarXml(achados, esferaDe, temasOff) {
+    temasOff = temasOff || new Set();
+    const mesAt = window.Selic ? Selic.mesAtual() : '';
+    // ---- aba 1: memória achado a achado ----
+    const cab1 = row(['Tese', 'Nome da tese', 'Esfera', 'Natureza', 'Filial (CNPJ)', 'Período', 'Título do achado',
+      'Valor original (R$)', 'Política de correção', 'Competência âncora', 'Selic acumulada (%)', 'Juros (R$)',
+      'Valor corrigido (R$)', 'No totalizador?'].map(h => cS(h, 'h')));
+    const linhas1 = [];
+    const porTese = {};
+    const cat = (window.Conhecimento && Conhecimento.AUDITORIAS) || [];
+    const nomeDe = (id, a) => { const d = cat.find(x => x.id === id); return (d && d.nome) || a.titulo || id; };
+    for (const a of achados) {
+      const id = a._regra || a.tipo || '?';
+      const esf = esferaDe(id);
+      const pol = politicaDe(a, esf);
+      const v = Number(a.valor) || 0;
+      let pct = 0, juros = 0, corrigido = v;
+      if (pol.aplica && window.Selic) {
+        const c = Selic.corrigir(v, pol.per, mesAt);
+        pct = c.pct; juros = c.juros; corrigido = c.corrigido;
+      }
+      const t = (porTese[id] = porTese[id] || { id, nome: nomeDe(id, a), esf, nat: a.natureza || 'risco', n: 0, v: 0, vc: 0 });
+      t.n++; t.v += v; t.vc += corrigido;
+      linhas1.push(row([
+        cS(id), cS(t.nome), cS(esf === 'federal' ? 'Federal' : 'Estadual (ICMS/MG)'), cS(a.natureza || 'risco'),
+        cS(a.cnpj_empresa || ''), cS(a.periodo || ''), cS((a.titulo || '').slice(0, 140)),
+        cN(v), cS(pol.motivo), cS(pol.aplica ? pol.per : '—'), cN(pct, 'p'), cN(juros), cN(corrigido),
+        cS(temasOff.has(id) ? 'NÃO (⏻ curadoria)' : 'sim'),
+      ]));
+    }
+    // ---- aba 2: totais por tese ----
+    const cab2 = row(['Tese', 'Nome', 'Esfera', 'Natureza', 'Achados', 'Original (R$)', 'Corrigido (R$)', 'Diferença (R$)']
+      .map(h => cS(h, 'h')));
+    const linhas2 = Object.values(porTese)
+      .sort((x, y) => Math.abs(y.v) - Math.abs(x.v))
+      .map(t => row([cS(t.id), cS(t.nome), cS(t.esf === 'federal' ? 'Federal' : 'Estadual'), cS(t.nat),
+        cN(t.n, 'i'), cN(t.v), cN(t.vc), cN(t.vc - t.v)]));
+    // ---- aba 3: tabela Selic usada ----
+    const cab3 = row(['Competência', 'Taxa mensal (%)', 'Origem', `Acumulada até ${mesAt} (%)`].map(h => cS(h, 'h')));
+    const linhas3 = [];
+    if (window.Selic) {
+      const T = Selic.tabela();
+      for (const per of Object.keys(T).sort()) {
+        const ac = per < mesAt ? Selic.acumuladoPct(per, mesAt).pct : 0;
+        linhas3.push(row([cS(per), cN(T[per], 'p'), cS(Selic.ehOverride(per) ? 'ajuste manual' : 'tabela embutida'),
+          cN(ac, 'p')]));
+      }
+    }
+    const ws = (nome, cab, linhas) => `<Worksheet ss:Name="${xe(nome)}"><Table>${cab}${linhas.join('')}</Table></Worksheet>`;
+    return `<?xml version="1.0"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
+<Styles>
+<Style ss:ID="h"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#16365B" ss:Pattern="Solid"/></Style>
+<Style ss:ID="n"><NumberFormat ss:Format="#,##0.00"/></Style>
+<Style ss:ID="p"><NumberFormat ss:Format="0.00"/></Style>
+<Style ss:ID="i"><NumberFormat ss:Format="0"/></Style>
+</Styles>
+${ws('Memória de cálculo', cab1, linhas1)}
+${ws('Totais por tese', cab2, linhas2)}
+${ws('Tabela Selic', cab3, linhas3)}
+</Workbook>`;
+  }
+
+  function baixar(achados, esferaDe, temasOff, nomeArq) {
+    const xml = montarXml(achados, esferaDe, temasOff);
+    const blob = new Blob(['\ufeff' + xml], { type: 'application/vnd.ms-excel' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = nomeArq || 'Memoria_Calculo_Auditoria_Selic.xls';
+    document.body.appendChild(a); a.click();
+    setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 300);
+  }
+
+  return { montarXml, baixar, _politicaDe: politicaDe };
+})();
+
+
 // ===================== laudo.js =====================
 // Laudo de Auditoria Fiscal v3.18.2 — narrativo por tese, no formato dos laudos
 // Prime: resumo executivo auto-gerado, quadro-síntese, totalizador clicável,
@@ -8129,11 +8333,15 @@ window.Laudo = (function () {
     const M = {};
     for (const a of (achados || [])) {
       const id = a._regra || a.tipo || '?';
-      const t = (M[id] = M[id] || { id, nat: null, esfera: ambito(id), v: 0, n: 0,
+      const t = (M[id] = M[id] || { id, nat: null, esfera: ambito(id), v: 0, vc: 0, n: 0,
         filiais: new Set(), periodos: [], achados: [], bl: '', nome: '', doc: docDe(id) });
       const nat = (a.natureza === 'credito' || a.natureza === 'erro') ? a.natureza : 'risco';
       t.nat = t.nat || nat;
-      t.v += Number(a.valor) || 0; t.n++;
+      t.v += Number(a.valor) || 0;
+      // crédito escritural estadual: valor nominal (RICMS/MG art. 67, § 2º) — sem Selic
+      const aplicaSelic = window.Selic && !(nat === 'credito' && t.esfera === 'estadual');
+      t.vc += aplicaSelic ? Selic.corrigirAchado(a).corrigido : (Number(a.valor) || 0);
+      t.n++;
       if (a.cnpj_empresa) t.filiais.add(a.cnpj_empresa);
       if (a.periodo && a.periodo !== '(consolidado)') t.periodos.push(a.periodo);
       if (!t.bl && a.base_legal) t.bl = a.base_legal;
@@ -8171,9 +8379,11 @@ window.Laudo = (function () {
     const linhas = temas.slice(0, 12).map(t => `
       <tr><td>${esc(t.nome)} <span class="esf-mini ${t.esfera === 'federal' ? 'fed' : 'est'}">${t.esfera === 'federal' ? 'FED' : 'ICMS'}</span></td>
       <td>${NAT_ROT[t.nat] || t.nat}</td>
-      <td class="num" style="color:${t.nat === 'credito' ? '#1a7f4b' : '#c0392b'};font-weight:700">${fmt(t.v)}</td></tr>`).join('');
+      <td class="num" style="color:${t.nat === 'credito' ? '#1a7f4b' : '#c0392b'};font-weight:700">${fmt(t.v)}</td>
+      <td class="num" style="color:${t.nat === 'credito' ? '#1a7f4b' : '#c0392b'}">${t.vc > t.v + 0.005 ? fmt(t.vc) : '—'}</td></tr>`).join('');
     return `<h2>2. Quadro-síntese</h2>
-      <table><thead><tr><th>Tese</th><th>Natureza</th><th style="text-align:right">Valor</th></tr></thead><tbody>${linhas}</tbody></table>`;
+      <table><thead><tr><th>Tese</th><th>Natureza</th><th style="text-align:right">Valor original</th><th style="text-align:right">💹 Corrigido (Selic)</th></tr></thead><tbody>${linhas}</tbody></table>
+      <p style="font-size:11px;color:#5a6a78">Correção pela Selic acumulada até o mês de emissão (regra RFB: soma das taxas mensais do mês seguinte à competência + 1% no mês atual). <strong>Créditos estaduais não recebem correção</strong>: o aproveitamento escritural de ICMS é pelo valor nominal (RICMS/MG, art. 67, § 2º do Dec. 43.080/2002, regra mantida no Dec. 48.589/2023; STF exige lei estadual autorizativa, inexistente em MG). Consolidados/sem competência mensal também não. A memória de cálculo completa está disponível em Excel na aba Auditorias do programa.</p>`;
   }
 
   // ---- subseção numerada de uma tese (o coração do laudo narrativo) ----
@@ -8182,17 +8392,22 @@ window.Laudo = (function () {
     const perTxt = t.periodos.length ? (pMin === pMax ? pMin : `${pMin} a ${pMax}`) : 'consolidado';
     const explic = (t.doc && (t.doc.regra || t.doc.fundamento)) || (t.achados[0] && t.achados[0].descricao) || '';
     const fund = (t.doc && t.doc.fundamento && t.doc.regra) ? `<p class="fund"><strong>Fundamento:</strong> ${esc(t.doc.fundamento)}</p>` : '';
-    const top = t.achados.slice(0, 5).map(a => `
+    const podeSelic = !(t.nat === 'credito' && t.esfera === 'estadual');
+    const top = t.achados.slice(0, 5).map(a => {
+      const c = (window.Selic && podeSelic) ? Selic.corrigirAchado(a) : { corrigido: Number(a.valor) || 0, aplicada: false };
+      return `
       <tr><td>${esc(a.periodo || '—')}</td><td class="mono">${esc(fmtCnpj(a.cnpj_empresa || ''))}</td>
       <td>${esc((a.titulo || '').slice(0, 90))}</td>
-      <td class="num">${fmt(Number(a.valor) || 0)}</td></tr>`).join('');
+      <td class="num">${fmt(Number(a.valor) || 0)}</td>
+      <td class="num">${(c.aplicada && c.corrigido > (Number(a.valor) || 0) + 0.005) ? fmt(c.corrigido) : '—'}</td></tr>`;
+    }).join('');
     const mais = t.n > 5 ? `<p class="mais">… e mais ${t.n - 5} achado(s) desta tese, disponíveis na aba Detalhe do programa.</p>` : '';
     return `
       <h3>${num} ${esc(t.nome)} <span class="nat-badge ${t.nat}">${NAT_ROT[t.nat]}</span></h3>
       <p>${esc(explic)}</p>
       ${fund}
-      <p class="stats"><strong>${fmt(t.v)}</strong> em ${t.n} achado(s) · ${t.filiais.size || 1} filial(is) · períodos: ${esc(perTxt)}.</p>
-      <table><thead><tr><th>Período</th><th>Filial</th><th>Achado</th><th style="text-align:right">Valor</th></tr></thead><tbody>${top}</tbody></table>
+      <p class="stats"><strong>${fmt(t.v)}</strong>${t.vc > t.v + 0.005 ? ` · corrigido pela Selic: <strong>${fmt(t.vc)}</strong>` : ''} em ${t.n} achado(s) · ${t.filiais.size || 1} filial(is) · períodos: ${esc(perTxt)}.</p>
+      <table><thead><tr><th>Período</th><th>Filial</th><th>Achado</th><th style="text-align:right">Valor</th><th style="text-align:right">💹 Corrigido</th></tr></thead><tbody>${top}</tbody></table>
       ${mais}
       ${t.bl ? `<div class="bl"><strong>Base legal:</strong> ${esc(t.bl)}</div>` : ''}`;
   }
@@ -8232,8 +8447,14 @@ window.Laudo = (function () {
     const vig = (window.RegimeVigencia && RegimeVigencia.obter(cnpj)) || { tipo: '', inicio: '', fim: '' };
     const fl = (window.RegimeVigencia && RegimeVigencia.flags(cnpj)) || {};
     const temas = temasDe(achados);
-    const tot = { estadual: { credito: 0, risco: 0, erro: 0, n: 0 }, federal: { credito: 0, risco: 0, erro: 0, n: 0 } };
-    for (const t of temas) { tot[t.esfera][t.nat] += t.v; tot[t.esfera].n += t.n; }
+    const tot = { estadual: { credito: 0, creditoC: 0, risco: 0, riscoC: 0, erro: 0, n: 0 },
+                  federal: { credito: 0, creditoC: 0, risco: 0, riscoC: 0, erro: 0, n: 0 } };
+    for (const t of temas) {
+      tot[t.esfera][t.nat] += t.v;
+      if (t.nat === 'credito') tot[t.esfera].creditoC += t.vc;
+      else if (t.nat === 'risco') tot[t.esfera].riscoC += t.vc;
+      tot[t.esfera].n += t.n;
+    }
     const hoje = new Date().toLocaleDateString('pt-BR');
     const resumo = localStorage.getItem('revisor_laudo_resumo_' + cnpj) || resumoAuto(temas, tot);
     const conclusao = localStorage.getItem('revisor_laudo_conclusao_' + cnpj)
@@ -8247,7 +8468,9 @@ window.Laudo = (function () {
       <tr class="tot-click" onclick="var s=document.getElementById('${alvoId}'); if(s&&s.scrollIntoView) s.scrollIntoView({behavior:'smooth',block:'start'})" title="Clique para ir até a seção">
         <td>${rot} <span class="seta">↓</span></td>
         <td class="num" style="color:#1a7f4b;font-weight:700">${fmt(tot[e].credito)}</td>
+        <td class="num" style="color:#1a7f4b">${fmt(tot[e].creditoC)}</td>
         <td class="num" style="color:#c0392b">${fmt(tot[e].risco)}</td>
+        <td class="num" style="color:#c0392b">${fmt(tot[e].riscoC)}</td>
         <td class="num" style="color:#b26a00">${tot[e].erro ? fmt(tot[e].erro) : '—'}</td>
         <td class="num">${tot[e].n}</td></tr>`;
 
@@ -8287,12 +8510,14 @@ window.Laudo = (function () {
       + '<h2>1. Resumo executivo</h2><div class="edit" contenteditable="true" id="ed-resumo">' + esc(resumo) + '</div>'
       + quadroSinteseHtml(temas)
       + '<h2>3. Totalizador — estadual × federal</h2>'
-      + '<table><thead><tr><th>Esfera</th><th style="text-align:right">💰 Oportunidades</th><th style="text-align:right">⚠️ Riscos</th><th style="text-align:right">🛠️ Erros</th><th style="text-align:right">Achados</th></tr></thead><tbody>'
+      + '<table><thead><tr><th>Esfera</th><th style="text-align:right">💰 Oportunidades</th><th style="text-align:right">💹 corrigido</th><th style="text-align:right">⚠️ Riscos</th><th style="text-align:right">💹 corrigido</th><th style="text-align:right">🛠️ Erros</th><th style="text-align:right">Achados</th></tr></thead><tbody>'
       + linhaTot('Estadual — ICMS', 'estadual', 'sec-est')
       + linhaTot('Federal', 'federal', 'sec-fed')
       + `<tr style="font-weight:800;background:#eaf0f6"><td>TOTAL</td>
           <td class="num" style="color:#1a7f4b">${fmt(totalCred)}</td>
+          <td class="num" style="color:#1a7f4b">${fmt(tot.estadual.creditoC + tot.federal.creditoC)}</td>
           <td class="num" style="color:#c0392b">${fmt(totalRisco)}</td>
+          <td class="num" style="color:#c0392b">${fmt(tot.estadual.riscoC + tot.federal.riscoC)}</td>
           <td class="num" style="color:#b26a00">${totalErro ? fmt(totalErro) : '—'}</td>
           <td class="num">${(tot.estadual.n + tot.federal.n)}</td></tr>`
       + '</tbody></table>'
@@ -12101,8 +12326,8 @@ const UIAuditorias = (function () {
     const grupos = {};
     for (const a of achados) {
       if ((a.natureza || 'risco') !== nat) continue;
-      const g = (grupos[a._regra] = grupos[a._regra] || { v: 0, n: 0, fil: new Set(), per: new Set(), nome: '' });
-      g.v += Number(a.valor) || 0; g.n++;
+      const g = (grupos[a._regra] = grupos[a._regra] || { v: 0, vc: 0, n: 0, fil: new Set(), per: new Set(), nome: '' });
+      g.v += Number(a.valor) || 0; g.vc += corrigidoDe(a); g.n++;
       if (a.cnpj_empresa) g.fil.add(a.cnpj_empresa);
       if (a.periodo) g.per.add(a.periodo);
       if (!g.nome) g.nome = TIPO_ROTULO[a.tipo] || a.titulo || a.tipo;
@@ -12128,6 +12353,7 @@ const UIAuditorias = (function () {
             </span>
           </div>
           <div class="aud-tema-val">${fmt(g.v)}</div>
+          ${g.vc > g.v + 0.005 ? `<div class="aud-tema-corr">💹 corrigido (Selic): ${fmt(g.vc)}</div>` : ''}
           <div class="aud-tema-nome">${Utils.escapeHtml((doc && doc.nome) || g.nome || id)}</div>
           <div class="aud-tema-meta">${g.n} achado(s) · ${g.fil.size || 1} filial(is) · ${g.per.size} período(s)${off ? ' · <b>fora do totalizador</b>' : ''}</div>
           <div class="aud-tema-cta">clique para ver a tese →</div>
@@ -12159,37 +12385,161 @@ const UIAuditorias = (function () {
       </div>`;
   }
 
-  // ---- totalizador Estadual × Federal do topo do Resumo ----
+  // ---- correção Selic de um achado (memoizada por render) ----
+  // POLÍTICA: crédito ESCRITURAL de ICMS não se corrige (aproveitamento pelo
+  // valor nominal — RICMS/MG, art. 67, § 2º do Dec. 43.080/2002, regra mantida
+  // no Dec. 48.589/2023; STF: correção de crédito escritural exige lei estadual).
+  // Débitos/riscos estaduais e TODOS os valores federais corrigem pela Selic.
+  function selicAplicavel(a) {
+    return !(a && a.natureza === 'credito' && esferaDe(a._regra) === 'estadual');
+  }
+  function corrigidoDe(a) {
+    if (!window.Selic) return Number(a.valor) || 0;
+    if (!selicAplicavel(a)) return Number(a.valor) || 0;
+    if (a.__sel == null) a.__sel = Selic.corrigirAchado(a).corrigido;
+    return a.__sel;
+  }
+
+  // ---- totalizador Estadual × Federal do topo do Resumo (original × corrigido Selic) ----
   function totalizadorEsferasHtml(ativos, fmt) {
-    const M = { estadual: { credito: 0, risco: 0, erro: 0, n: 0 }, federal: { credito: 0, risco: 0, erro: 0, n: 0 } };
+    const M = { estadual: { credito: 0, creditoC: 0, risco: 0, riscoC: 0, erro: 0, n: 0 },
+                federal: { credito: 0, creditoC: 0, risco: 0, riscoC: 0, erro: 0, n: 0 } };
     for (const a of ativos) {
-      const e = esferaDe(a._regra); const v = Number(a.valor) || 0;
-      M[e][a.natureza === 'credito' ? 'credito' : a.natureza === 'erro' ? 'erro' : 'risco'] += v; M[e].n++;
+      const e = esferaDe(a._regra); const v = Number(a.valor) || 0; const vc = corrigidoDe(a);
+      if (a.natureza === 'credito') { M[e].credito += v; M[e].creditoC += vc; }
+      else if (a.natureza === 'erro') { M[e].erro += v; }
+      else { M[e].risco += v; M[e].riscoC += vc; }
+      M[e].n++;
     }
     const linha = (rot, m, cls, esf) => `<tr class="${cls}${esf ? ' aud-tot-esf' : ''}"${esf ? ` data-esf="${esf}" title="Clique para ir até o bloco ${esf}"` : ''}>
       <td style="font-weight:700">${rot}${esf ? ' <span style="font-weight:400;color:var(--texto-fraco);font-size:11px">↓</span>' : ''}</td>
       <td style="text-align:right;color:#1a7f4b;font-weight:700">${fmt(m.credito)}</td>
+      <td style="text-align:right;color:#1a7f4b">${fmt(m.creditoC)}</td>
       <td style="text-align:right;color:#c0392b;font-weight:600">${fmt(m.risco)}</td>
+      <td style="text-align:right;color:#c0392b">${fmt(m.riscoC)}</td>
       <td style="text-align:right;color:#b26a00">${m.erro ? fmt(m.erro) : '—'}</td>
       <td style="text-align:right">${m.n}</td></tr>`;
-    const tot = { credito: M.estadual.credito + M.federal.credito, risco: M.estadual.risco + M.federal.risco,
+    const tot = { credito: M.estadual.credito + M.federal.credito, creditoC: M.estadual.creditoC + M.federal.creditoC,
+      risco: M.estadual.risco + M.federal.risco, riscoC: M.estadual.riscoC + M.federal.riscoC,
       erro: M.estadual.erro + M.federal.erro, n: M.estadual.n + M.federal.n };
+    const falt = window.Selic ? Selic.faltantesAte() : [];
+    const notaSelic = `<p style="font-size:11.5px;color:var(--texto-fraco);margin:6px 0 0">📈 Corrigido pela Selic acumulada (regra RFB: soma das taxas do mês seguinte à competência + 1% no mês atual). <strong>Créditos estaduais NÃO corrigem</strong>: o aproveitamento escritural de ICMS é pelo valor nominal (RICMS/MG, art. 67, § 2º). Consolidados/sem competência mensal também não.</p>`
+      + (falt.length ? `<p style="font-size:11.5px;color:#b26a00;margin:4px 0 0">⚠️ A tabela Selic está sem taxa em: ${falt.join(', ')} — inclua no editor para a correção ficar completa.</p>` : '');
     const nota = _temasOff.size
       ? `<p style="font-size:11.5px;color:#b26a00;margin:6px 0 0">⏻ ${_temasOff.size} tema(s) excluído(s) do totalizador pelo auditor: ${[..._temasOff].join(', ')} — clique no ⏻ do tema para reincluir. O laudo respeita esta seleção.</p>`
       : '';
     return `
-      <h3 class="aud-sec-tit">🧮 Totalizador — Estadual × Federal</h3>
+      <h3 class="aud-sec-tit">🧮 Totalizador — Estadual × Federal
+        <button class="aud-btn-selic" id="btn-tab-selic" title="Editar a tabela Selic (inclusive meses futuros)">📈 Tabela Selic</button>
+        <button class="aud-btn-selic" id="btn-mem-calc" title="Baixar o relatório Excel com a memória de cálculo da correção">📥 Memória de cálculo (Excel)</button></h3>
       <div class="card" style="padding:12px 16px">
         <table class="tabela-dados">
-          <thead><tr><th>Esfera</th><th style="text-align:right">💰 Oportunidades</th><th style="text-align:right">⚠️ Riscos</th><th style="text-align:right">🛠️ Erros</th><th style="text-align:right">Achados</th></tr></thead>
+          <thead><tr><th>Esfera</th><th style="text-align:right">💰 Oportunidades</th><th style="text-align:right">💹 corrigido</th><th style="text-align:right">⚠️ Riscos</th><th style="text-align:right">💹 corrigido</th><th style="text-align:right">🛠️ Erros</th><th style="text-align:right">Achados</th></tr></thead>
           <tbody>
             ${linha('🏛️ Estadual — ICMS/MG', M.estadual, '', 'est')}
             ${linha('🇧🇷 Federal', M.federal, '', 'fed')}
             ${linha('TOTAL', tot, 'aud-tot-linha')}
           </tbody>
         </table>
+        ${notaSelic}
         ${nota}
       </div>`;
+  }
+
+  // ---- editor da tabela Selic (meses embutidos + inclusão manual de futuros) ----
+  function abrirEditorSelic() {
+    if (!window.Selic) return;
+    const T = Selic.tabela();
+    const anos = [...new Set(Object.keys(T).map(p => p.slice(0, 4)))].sort();
+    const anoMax = Math.max(...anos.map(Number), new Date().getFullYear() + 1);
+    for (let a = Number(anos[anos.length - 1]) + 1; a <= anoMax; a++) anos.push(String(a));
+    const linhas = anos.map(ano => {
+      const cels = [];
+      for (let m = 1; m <= 12; m++) {
+        const per = `${ano}-${String(m).padStart(2, '0')}`;
+        const v = T[per];
+        const marca = Selic.ehOverride(per) ? ' selic-ov' : (v == null ? ' selic-vazio' : '');
+        cels.push(`<td><input class="selic-inp${marca}" data-per="${per}" type="number" step="0.01" min="0" value="${v == null ? '' : v}" placeholder="—"></td>`);
+      }
+      return `<tr><td style="font-weight:700">${ano}</td>${cels.join('')}</tr>`;
+    }).join('');
+    // aba de conferência: acumulada de cada competência até o mês atual (regra RFB)
+    const mesAt = Selic.mesAtual();
+    const linhasAcum = anos.map(ano => {
+      const cels = [];
+      for (let m = 1; m <= 12; m++) {
+        const per = `${ano}-${String(m).padStart(2, '0')}`;
+        if (per >= mesAt) { cels.push('<td style="color:var(--texto-fraco)">—</td>'); continue; }
+        const a = Selic.acumuladoPct(per, mesAt);
+        cels.push(`<td style="text-align:right${a.faltantes.length ? ';color:#b26a00' : ''}" title="${a.faltantes.length ? 'faltam taxas: ' + a.faltantes.join(', ') : 'competência ' + per + ' → ' + mesAt}">${a.pct.toFixed(2)}</td>`);
+      }
+      return `<tr><td style="font-weight:700">${ano}</td>${cels.join('')}</tr>`;
+    }).join('');
+    const corpo = `
+      <div class="aud-vtabs" style="margin:0 0 10px">
+        <button class="ativa" data-selic-aba="taxas">Taxas mensais</button>
+        <button data-selic-aba="acum">Acumulada até ${mesAt} (conferência)</button>
+      </div>
+      <div id="selic-aba-taxas">
+      <p style="font-size:12px;color:var(--texto-fraco);margin:0 0 8px">
+        Taxas mensais em % — tabela divulgada pela RFB, <strong>conferida contra a fonte oficial em 09/07/2026</strong> (2019-01 a 2026-06). Meses novos: preencha aqui conforme a RFB divulgar (até o 5º dia útil do mês seguinte), e
+        preencha os futuros: campos editados ficam <span class="selic-ov" style="padding:1px 6px;border-radius:4px">destacados</span> e salvos neste navegador.
+        A correção usa a regra da RFB: soma das taxas do mês seguinte à competência até o mês anterior ao atual, + 1% no mês atual.</p>
+      <div style="overflow:auto;max-height:48vh">
+        <table class="tabela-dados selic-grid">
+          <thead><tr><th>Ano</th>${['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'].map(m => `<th>${m}</th>`).join('')}</tr></thead>
+          <tbody>${linhas}</tbody>
+        </table>
+      </div>
+      </div>
+      <div id="selic-aba-acum" hidden>
+      <p style="font-size:12px;color:var(--texto-fraco);margin:0 0 8px">
+        <strong>Selic acumulada por competência</strong> até ${mesAt}, já pela regra da RFB (soma do mês seguinte + 1% do mês atual) —
+        é o percentual que multiplica o valor original. Use para conferir com a tabela de juros da Receita.</p>
+      <div style="overflow:auto;max-height:48vh">
+        <table class="tabela-dados selic-grid">
+          <thead><tr><th>Ano</th>${['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'].map(m => `<th>${m}</th>`).join('')}</tr></thead>
+          <tbody>${linhasAcum}</tbody>
+        </table>
+      </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+        <button class="btn btn-primario" id="selic-salvar">Salvar alterações</button>
+        <button class="btn" id="selic-restaurar" title="Remove todos os ajustes manuais e volta à tabela embutida">Restaurar padrão</button>
+      </div>`;
+    abrirModal('📈 Tabela Selic mensal', corpo);
+    const m = document.getElementById('aud-modal');
+    if (!m) return;
+    m.querySelectorAll('[data-selic-aba]').forEach(bt => bt.onclick = () => {
+      m.querySelectorAll('[data-selic-aba]').forEach(b => b.classList.toggle('ativa', b === bt));
+      m.querySelector('#selic-aba-taxas').hidden = bt.dataset.selicAba !== 'taxas';
+      m.querySelector('#selic-aba-acum').hidden = bt.dataset.selicAba !== 'acum';
+    });
+    m.querySelector('#selic-salvar').onclick = () => {
+      m.querySelectorAll('.selic-inp').forEach(inp => {
+        const per = inp.dataset.per, novo = inp.value;
+        const atual = Selic.tabela()[per];
+        const oficial = Selic._OFICIAL[per];
+        if (novo === '' && atual == null) return;
+        if (novo !== '' && Number(novo) === Number(oficial) && !Selic.ehOverride(per)) return;
+        if (novo === '') { if (Selic.ehOverride(per)) Selic.salvar(per, null); return; }
+        if (Number(novo) !== Number(atual) || (oficial == null)) Selic.salvar(per, Number(novo));
+        else if (Selic.ehOverride(per) && Number(novo) !== Number(oficial)) Selic.salvar(per, Number(novo));
+      });
+      fecharModal();
+      if (_ultimoRender) {
+        for (const a of (_ultimoRender.res.achados || [])) delete a.__sel;
+        renderResultado(_ultimoRender.alvo, _ultimoRender.res, _ultimoRender.persistido);
+      }
+    };
+    m.querySelector('#selic-restaurar').onclick = () => {
+      if (!confirm('Remover todos os ajustes manuais da tabela Selic?')) return;
+      Selic.restaurarPadrao(); fecharModal();
+      if (_ultimoRender) {
+        for (const a of (_ultimoRender.res.achados || [])) delete a.__sel;
+        renderResultado(_ultimoRender.alvo, _ultimoRender.res, _ultimoRender.persistido);
+      }
+    };
   }
 
   // ---- abertura por filial v2 (linhas clicáveis + totais completos) ----
@@ -12533,6 +12883,19 @@ const UIAuditorias = (function () {
     });
     // abas de visão
     alvo.querySelectorAll('.aud-vtabs button').forEach(bt => bt.onclick = () => setView(alvo, bt.dataset.view));
+    // editor da tabela Selic
+    const btnSelic = alvo.querySelector('#btn-tab-selic');
+    if (btnSelic) btnSelic.onclick = (ev) => { ev.stopPropagation(); abrirEditorSelic(); };
+    // memória de cálculo em Excel
+    const btnMem = alvo.querySelector('#btn-mem-calc');
+    if (btnMem) btnMem.onclick = (ev) => {
+      ev.stopPropagation();
+      if (!window.MemoriaCalculo) return;
+      const res = (_ultimoRender && _ultimoRender.res) || {};
+      const achados = _achadosVisiveis(res, _incluiSusp);
+      if (!achados.length) { alert('Sem achados para exportar — rode as auditorias primeiro.'); return; }
+      MemoriaCalculo.baixar(achados, esferaDe, _temasOff);
+    };
     // linhas do totalizador → rola até o bloco da esfera
     alvo.querySelectorAll('.aud-tot-esf').forEach(tr => tr.onclick = () => {
       const bloco = alvo.querySelector('.aud-esf-bloco.' + tr.dataset.esf);
@@ -12771,7 +13134,7 @@ const UIAuditorias = (function () {
           <span class="badge sev-badge-${sev}">${SEV_ROTULO[sev] || sev}</span>
           <span class="badge nat-badge-${nat}">${NAT_ROTULO[nat] || nat}</span>
           <span class="aud-periodo">${a.periodo || ''}</span>
-          <span class="aud-valor">${Utils.fmtBRL(a.valor || 0)}</span>
+          <span class="aud-valor">${Utils.fmtBRL(a.valor || 0)}${(() => { const c = corrigidoDe(a); return c > (Number(a.valor) || 0) + 0.005 ? ` <span class="aud-valor-corr" title="Corrigido pela Selic até o mês atual">💹 ${Utils.fmtBRL(c)}</span>` : ''; })()}</span>
         </div>
         <div class="aud-achado-titulo">${Utils.escapeHtml(a.titulo || '')}</div>
         <div class="aud-achado-desc">${Utils.escapeHtml(a.descricao || '')}</div>
@@ -13850,7 +14213,7 @@ const App = (function () {
   // A linha VERSAO_APP abaixo é atualizada automaticamente pelo
   // publicar-revisor.command (lê o versao.txt). Não editar na mão.
   // ------------------------------------------------------------------
-  const VERSAO_APP = '3.18.0';
+  const VERSAO_APP = '3.19.2';
   function cmpVersao(a, b) {
     const pa = String(a).split('.').map(n => parseInt(n, 10) || 0);
     const pb = String(b).split('.').map(n => parseInt(n, 10) || 0);
