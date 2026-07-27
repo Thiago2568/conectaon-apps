@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 64 64%22%3E%3Ccircle cx=%2232%22 cy=%2232%22 r=%2230%22 fill=%22%2316365B%22/%3E%3Crect x=%2215%22 y=%2236%22 width=%227%22 height=%2213%22 rx=%221.5%22 fill=%22%23fff%22/%3E%3Crect x=%2226%22 y=%2228%22 width=%227%22 height=%2221%22 rx=%221.5%22 fill=%22%23fff%22/%3E%3Crect x=%2237%22 y=%2220%22 width=%227%22 height=%2229%22 rx=%221.5%22 fill=%22%23fff%22/%3E%3Cpath d=%22M41 17 L50 8 M50 8 h-8 M50 8 v8%22 stroke=%22%23FF6B35%22 stroke-width=%224.5%22 stroke-linecap=%22round%22 fill=%22none%22/%3E%3C/svg%3E">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Revisor Fiscal Prime v3.17</title>
+<title>Revisor Fiscal Prime v3.25.0</title>
 <!-- SheetJS para exportação Excel (carregado de CDN; funciona offline depois de cacheado) -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <!-- JSZip para ler lotes de XML em .zip -->
@@ -878,6 +878,13 @@ h1, h2, h3, .stat-num, .inicio-hero h1, .etapa-header h2, .card h3, .inicio-card
 #banner-nova-versao button:hover { filter: brightness(1.08); }
 #banner-nova-versao .bv-x { cursor: pointer; opacity: .7; font-size: 13px; padding: 2px 4px; }
 #banner-nova-versao .bv-x:hover { opacity: 1; }
+/* banner do modo nuvem: mesmo formato, cor de atenção (trabalho não devolvido) */
+.banner-nuvem { position: fixed; left: 50%; transform: translateX(-50%); bottom: 18px; z-index: 9998; display: flex; align-items: center; gap: 14px; background: #8A5A00; color: #fff; padding: 12px 18px; border-radius: 12px; box-shadow: 0 8px 28px rgba(0,0,0,.28); font-family: var(--ff-body); font-size: 13.5px; max-width: 92vw; }
+.banner-nuvem b { color: #FFD79A; }
+.banner-nuvem button { background: #fff; color: #8A5A00; border: none; border-radius: 8px; padding: 7px 14px; font-weight: 600; cursor: pointer; font-size: 13px; white-space: nowrap; }
+.banner-nuvem button:hover { filter: brightness(.94); }
+.banner-nuvem .bv-x { cursor: pointer; opacity: .7; font-size: 13px; padding: 2px 4px; }
+.banner-nuvem .bv-x:hover { opacity: 1; }
 #seletor-cliente { background: rgba(255,255,255,.05); border-top: 1px solid rgba(255,255,255,.08); }
 
 /* ===== NAV ===== */
@@ -1024,7 +1031,7 @@ h1, h2, h3, .stat-num, .inicio-hero h1, .etapa-header h2, .card h3, .inicio-card
         <span class="brand-l2"><b>PRIME</b></span>
       </div>
     </div>
-    <span class="chip-ver" id="chip-versao">v3.17 · build 2026-07-09 · MG · multi-filial</span>
+    <span class="chip-ver" id="chip-versao">v3.25.0 · build 2026-07-27 15:42 · MG · multi-filial</span>
   </div>
   <div id="seletor-cliente"></div>
   <nav id="nav-principal"></nav>
@@ -1033,7 +1040,7 @@ h1, h2, h3, .stat-num, .inicio-hero h1, .etapa-header h2, .card h3, .inicio-card
 <main id="conteudo"></main>
 
 <footer class="app-footer">
-  Revisor Fiscal Prime — Prime Consultoria · Uso interno · Build 2026-06-28 19:54
+  Revisor Fiscal Prime · Prime Consultoria · Uso interno · v3.25.0 · Build 2026-07-27 15:42
 </footer>
 
 <script>
@@ -1353,6 +1360,174 @@ const Utils = (function () {
 })();
 
 window.Utils = Utils;
+
+
+// ===================== libs_puras.js =====================
+// =====================================================================
+// Revisor Fiscal Prime — libs_puras.js
+// Reservas SEM DEPENDÊNCIA para as duas bibliotecas que vinham só de CDN
+// (SheetJS e JSZip). O app "abre no Chrome sem instalação", mas sem internet
+// (ou numa rede de cliente que bloqueia cdnjs) a exportação de Excel e a
+// leitura de .zip morriam juntas. Padrão da casa (seção 3.6 da documentação
+// do SintegraView): gerador próprio, biblioteca nenhuma.
+//
+// Os shims só assumem quando a biblioteca de verdade NÃO carregou — com
+// internet, nada muda. A superfície implementada é exatamente a que o app
+// usa, nada além:
+//   XLSX.utils.book_new / json_to_sheet / book_append_sheet, XLSX.writeFile
+//   JSZip.loadAsync(buffer) → { files: { nome: { dir, name, async(tipo) } } }
+// =====================================================================
+
+(function () {
+  'use strict';
+
+  // ==================================================================
+  // 1) EXCEL — SpreadsheetML (Excel 2003 XML), o mesmo caminho que o
+  //    memoria_calculo.js já usa em produção. Arquivo único, sem zip.
+  //    A extensão vira .xls (é o formato correto para este conteúdo;
+  //    manter .xlsx faria o Excel reclamar de extensão trocada).
+  // ==================================================================
+  function _xlsxPuro() {
+    const xe = (s) => String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+    const celula = (v) => {
+      if (typeof v === 'number' && isFinite(v)) {
+        return `<Cell><Data ss:Type="Number">${v}</Data></Cell>`;
+      }
+      return `<Cell><Data ss:Type="String">${xe(v)}</Data></Cell>`;
+    };
+
+    // cabeçalho = união das chaves na ordem de primeira aparição (semântica
+    // do json_to_sheet do SheetJS, que o dossiê e os exports esperam)
+    function abaXml(nome, linhas) {
+      const colunas = [];
+      for (const l of (linhas || [])) {
+        for (const k of Object.keys(l || {})) if (!colunas.includes(k)) colunas.push(k);
+      }
+      const partes = [`<Worksheet ss:Name="${xe(String(nome || 'Dados').slice(0, 31))}"><Table>`];
+      partes.push('<Row>' + colunas.map(c => `<Cell><Data ss:Type="String">${xe(c)}</Data></Cell>`).join('') + '</Row>');
+      for (const l of (linhas || [])) {
+        partes.push('<Row>' + colunas.map(c => celula(l ? l[c] : '')).join('') + '</Row>');
+      }
+      partes.push('</Table></Worksheet>');
+      return partes.join('\n');
+    }
+
+    function montarXml(wb) {
+      return '<?xml version="1.0" encoding="UTF-8"?>\n'
+        + '<?mso-application progid="Excel.Sheet"?>\n'
+        + '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" '
+        + 'xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">\n'
+        + (wb._abas || []).map(a => abaXml(a.nome, a.linhas)).join('\n')
+        + '\n</Workbook>';
+    }
+
+    return {
+      _puro: true,   // deixa visível na depuração que é a reserva, não o SheetJS
+      utils: {
+        book_new: () => ({ _abas: [] }),
+        json_to_sheet: (dados) => ({ _linhas: Array.isArray(dados) ? dados : [] }),
+        book_append_sheet: (wb, ws, nome) => {
+          wb._abas.push({ nome: nome || `Plan${wb._abas.length + 1}`, linhas: (ws && ws._linhas) || [] });
+        },
+      },
+      writeFile: (wb, nomeArquivo) => {
+        const xml = montarXml(wb);
+        const nome = String(nomeArquivo || 'export.xls').replace(/\.xlsx$/i, '.xls');
+        const blob = new Blob(['﻿' + xml], { type: 'application/vnd.ms-excel' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = nome;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 2000);
+      },
+    };
+  }
+
+  // ==================================================================
+  // 2) ZIP — leitor puro sobre o formato zip. Entradas STORE saem por
+  //    fatia direta; DEFLATE descomprime com DecompressionStream
+  //    ('deflate-raw'), nativo do Chrome desde a versão 103. Limitações
+  //    assumidas: sem zip64 (arquivos > 4 GB) e sem zip cifrado — nenhum
+  //    dos dois aparece em lote de XML de NF-e.
+  // ==================================================================
+  function _jszipPuro() {
+    const dec = new TextDecoder('utf-8');
+
+    function lerCentral(buf) {
+      const dv = new DataView(buf);
+      // EOCD: assinatura 0x06054b50, varrida do fim (comentário pode ocupar até 64 KB)
+      let eocd = -1;
+      for (let i = buf.byteLength - 22; i >= Math.max(0, buf.byteLength - 22 - 65535); i--) {
+        if (dv.getUint32(i, true) === 0x06054b50) { eocd = i; break; }
+      }
+      if (eocd < 0) throw new Error('Arquivo .zip inválido (fim de diretório não encontrado).');
+      const total = dv.getUint16(eocd + 10, true);
+      let pos = dv.getUint32(eocd + 16, true);      // início do diretório central
+      const entradas = [];
+      for (let n = 0; n < total; n++) {
+        if (dv.getUint32(pos, true) !== 0x02014b50) break;
+        const metodo = dv.getUint16(pos + 10, true);
+        const tamComp = dv.getUint32(pos + 20, true);
+        const tamNome = dv.getUint16(pos + 28, true);
+        const tamExtra = dv.getUint16(pos + 30, true);
+        const tamComent = dv.getUint16(pos + 32, true);
+        const offLocal = dv.getUint32(pos + 42, true);
+        const nome = dec.decode(new Uint8Array(buf, pos + 46, tamNome));
+        entradas.push({ nome, metodo, tamComp, offLocal });
+        pos += 46 + tamNome + tamExtra + tamComent;
+      }
+      return entradas;
+    }
+
+    async function extrair(buf, e) {
+      const dv = new DataView(buf);
+      if (dv.getUint32(e.offLocal, true) !== 0x04034b50) throw new Error('Entrada zip corrompida: ' + e.nome);
+      // o cabeçalho local tem nome/extra próprios (podem diferir do central)
+      const tamNomeL = dv.getUint16(e.offLocal + 26, true);
+      const tamExtraL = dv.getUint16(e.offLocal + 28, true);
+      const ini = e.offLocal + 30 + tamNomeL + tamExtraL;
+      const dados = new Uint8Array(buf, ini, e.tamComp);
+      if (e.metodo === 0) return dados;                      // STORE
+      if (e.metodo === 8) {                                  // DEFLATE
+        const ds = new DecompressionStream('deflate-raw');
+        const resp = new Response(new Blob([dados]).stream().pipeThrough(ds));
+        return new Uint8Array(await resp.arrayBuffer());
+      }
+      throw new Error(`Método de compressão ${e.metodo} não suportado em ${e.nome}.`);
+    }
+
+    return {
+      _puro: true,
+      loadAsync: async (buffer) => {
+        const buf = buffer instanceof ArrayBuffer ? buffer : buffer.buffer;
+        const entradas = lerCentral(buf);
+        const files = {};
+        for (const e of entradas) {
+          files[e.nome] = {
+            name: e.nome,
+            dir: e.nome.endsWith('/'),
+            async: async (tipo) => {
+              const bytes = await extrair(buf, e);
+              return (tipo === 'string' || tipo === 'text') ? dec.decode(bytes) : bytes;
+            },
+          };
+        }
+        return { files };
+      },
+    };
+  }
+
+  // só assume quando o CDN falhou; com internet, as bibliotecas reais valem
+  if (typeof window !== 'undefined') {
+    if (typeof window.XLSX === 'undefined') window.XLSX = _xlsxPuro();
+    if (typeof window.JSZip === 'undefined') window.JSZip = _jszipPuro();
+    window.LibsPuras = { _xlsxPuro, _jszipPuro };   // expostas para teste
+  } else {
+    globalThis.LibsPuras = { _xlsxPuro, _jszipPuro };
+  }
+})();
 
 
 // ===================== layouts_sped.js =====================
@@ -2412,6 +2587,7 @@ const Clientes = (function () {
       cnpj,
       razao_social: dados.razao_social || (existente && existente.razao_social) || '',
       uf: dados.uf || (existente && existente.uf) || '',
+      setor: dados.setor !== undefined ? dados.setor : ((existente && existente.setor) || ''),
       ie: dados.ie || (existente && existente.ie) || '',
       ativo: dados.ativo !== undefined ? dados.ativo : true,
       criado_em: (existente && existente.criado_em) || new Date().toISOString(),
@@ -2437,6 +2613,58 @@ const Clientes = (function () {
   }
 
   // ------------------------------------------------------------------
+  // PREFERÊNCIAS DO CLIENTE (regime, textos do laudo, temas desligados)
+  // ------------------------------------------------------------------
+  // Estas calibragens moravam SÓ no localStorage, então trocar de máquina,
+  // trocar de navegador ou limpar dados do Chrome apagava o regime especial
+  // (que decide se um crédito presumido vira apontamento) e os textos editados
+  // do laudo, sem aviso. Agora o localStorage continua sendo o cache de leitura
+  // rápida, mas a verdade durável vai no CADASTRO do cliente (rev_clientes),
+  // que entra no cliente.json e viaja no modo nuvem.
+  //
+  //   persistirPrefs(cnpj)  localStorage → cadastro  (chamado ao salvar na pasta)
+  //   hidratarPrefs(cnpj)   cadastro → localStorage  (só preenche chave AUSENTE,
+  //                         para nunca sobrepor uma edição recente desta máquina)
+  const _CHAVES_PREFS = (cnpj) => ({
+    regime: 'revisor_regime_vigencia_' + cnpj,
+    laudo_resumo: 'revisor_laudo_resumo_' + cnpj,
+    laudo_conclusao: 'revisor_laudo_conclusao_' + cnpj,
+    laudo_plano: 'revisor_laudo_plano_' + cnpj,
+  });
+  const _CHAVE_TEMAS = (cnpj) => 'revisor_aud_temas_off_' + Utils.raizCNPJ(cnpj);
+
+  async function persistirPrefs(cnpj) {
+    const c = await obter(cnpj);
+    if (!c) return false;
+    const prefs = {};
+    for (const [campo, chave] of Object.entries(_CHAVES_PREFS(cnpj))) {
+      const v = localStorage.getItem(chave);
+      if (v != null) prefs[campo] = v;
+    }
+    const temas = localStorage.getItem(_CHAVE_TEMAS(cnpj));
+    if (temas != null) prefs.temas_off = temas;
+    if (!Object.keys(prefs).length) return false;
+    c.prefs = { ...(c.prefs || {}), ...prefs, _atualizado_em: new Date().toISOString() };
+    await DB.put('rev_clientes', c);
+    return true;
+  }
+
+  async function hidratarPrefs(cnpj) {
+    const c = await obter(cnpj);
+    if (!c || !c.prefs) return false;
+    let n = 0;
+    for (const [campo, chave] of Object.entries(_CHAVES_PREFS(cnpj))) {
+      if (c.prefs[campo] != null && localStorage.getItem(chave) == null) {
+        try { localStorage.setItem(chave, c.prefs[campo]); n++; } catch (e) {}
+      }
+    }
+    if (c.prefs.temas_off != null && localStorage.getItem(_CHAVE_TEMAS(cnpj)) == null) {
+      try { localStorage.setItem(_CHAVE_TEMAS(cnpj), c.prefs.temas_off); n++; } catch (e) {}
+    }
+    return n > 0;
+  }
+
+  // ------------------------------------------------------------------
   // CONTEXTO ATIVO
   // ------------------------------------------------------------------
 
@@ -2453,6 +2681,7 @@ const Clientes = (function () {
     _clienteAtivo = c;
     if (trocouGrupo) _filiaisSel = null;   // recarrega a seleção do grupo novo
     localStorage.setItem(LS_CLIENTE, c.cnpj);
+    try { await hidratarPrefs(c.cnpj); } catch (e) {}   // regime/laudo salvos no cadastro
     // Ao trocar de cliente, seleciona o período mais recente automaticamente
     const periodos = _ordenarPeriodos(await DB.periodosDoCliente(c.cnpj));
     _periodoAtivo = periodos[0] || null;
@@ -2481,6 +2710,7 @@ const Clientes = (function () {
     const c = await obter(cnpjSalvo);
     if (c) {
       _clienteAtivo = c;
+      try { await hidratarPrefs(c.cnpj); } catch (e) {}
       const periodoSalvo = localStorage.getItem(LS_PERIODO);
       const periodos = _ordenarPeriodos(await DB.periodosDoCliente(c.cnpj));
       _periodoAtivo = (periodoSalvo && periodos.includes(periodoSalvo))
@@ -2570,6 +2800,7 @@ const Clientes = (function () {
     definirAtivo, definirPeriodo, ativo, periodo, temContexto,
     restaurarContexto, periodosDisponiveis,
     filiaisDoGrupo, grupoTemFiliais, cnpjsAtivos, definirFiliaisSelecionadas, selecaoEhTodas,
+    persistirPrefs, hidratarPrefs,
   };
 })();
 
@@ -2598,7 +2829,12 @@ window.Clientes = Clientes;
 const Armazenamento = (function () {
   'use strict';
 
-  let _pasta = null;   // DirectoryHandle da pasta de trabalho (em memória)
+  let _pasta = null;   // DirectoryHandle da pasta NA NUVEM (origem durável)
+  let _local = null;   // DirectoryHandle da pasta LOCAL de trabalho (modo nuvem)
+
+  // Identidade desta sessão/máquina, para o marcador de uso do modo nuvem.
+  // O navegador não sabe o nome do computador, então o usuário batiza uma vez.
+  const _sessao = Math.random().toString(36).slice(2, 10);
 
   // ------------------------------------------------------------------
   // Suporte
@@ -2606,6 +2842,15 @@ const Armazenamento = (function () {
   function suportado() {
     return typeof window !== 'undefined' && 'showDirectoryPicker' in window;
   }
+
+  // ------------------------------------------------------------------
+  // MODO NUVEM: qual pasta o app usa para ler e gravar
+  // Com pasta local definida, TODO o trabalho acontece nela; a pasta na nuvem
+  // só é tocada ao entrar num cliente (baixar) e ao devolver. Sem pasta local,
+  // o comportamento é o de sempre (grava direto na pasta configurada).
+  // ------------------------------------------------------------------
+  function raiz() { return _local || _pasta; }
+  function modoNuvem() { return !!(_local && _pasta); }
 
   /**
    * Solicita ao navegador armazenamento PERSISTENTE: cota maior e, sobretudo,
@@ -2636,18 +2881,97 @@ const Armazenamento = (function () {
     return handle;
   }
 
-  /** Recupera o handle salvo (NÃO re-permissiona — isso exige garantirPermissao). */
+  /** Recupera os handles salvos (NÃO re-permissiona — isso exige garantirPermissao). */
   async function restaurarPastaSalva() {
+    let achou = null;
     try {
       const cfg = await DB.get('rev_config', 'pasta_trabalho');
-      if (cfg && cfg.handle) { _pasta = cfg.handle; return cfg; }
+      if (cfg && cfg.handle) { _pasta = cfg.handle; achou = cfg; }
+    } catch (e) {}
+    try {
+      const cl = await DB.get('rev_config', 'pasta_local');
+      if (cl && cl.handle) { _local = cl.handle; achou = achou || cl; }
+    } catch (e) {}
+    return achou;
+  }
+
+  /**
+   * Define a pasta LOCAL de trabalho (modo nuvem). É nela que o app lê e grava
+   * durante a sessão; a pasta na nuvem vira só origem e destino da sincronização.
+   * Recusa uma pasta que seja a mesma da nuvem, ou que esteja dentro dela (ou
+   * vice-versa): nesse caso não haveria cópia local nenhuma, só um segundo nome
+   * para o mesmo lugar sincronizado.
+   */
+  async function definirPastaLocal() {
+    if (!suportado()) throw new Error('Navegador sem suporte a pasta de trabalho.');
+    const handle = await window.showDirectoryPicker({ mode: 'readwrite', id: 'revisor-prime-local' });
+    const conflito = await conflitoDePastas(handle, _pasta);
+    if (conflito) throw new Error(conflito);
+    _local = handle;
+    try { await DB.put('rev_config', { id_config: 'pasta_local', handle, nome: handle.name }); } catch (e) {}
+    return handle;
+  }
+
+  /** Desliga o modo nuvem: volta a gravar direto na pasta configurada. */
+  async function removerPastaLocal() {
+    _local = null;
+    try { await DB.deleteOne('rev_config', 'pasta_local'); } catch (e) {}
+    return true;
+  }
+
+  /**
+   * Detecta os casos em que a "cópia local" não seria cópia nenhuma. O File
+   * System Access não expõe o caminho completo, então dá para checar só o que a
+   * própria API permite: mesma pasta, ou uma sendo descendente da outra. Uma
+   * pasta irmã dentro do OneDrive NÃO é detectável — por isso a tela avisa.
+   */
+  async function conflitoDePastas(local, nuvem) {
+    if (!local || !nuvem) return null;
+    try {
+      if (await local.isSameEntry(nuvem)) {
+        return 'Você escolheu a MESMA pasta da nuvem. A cópia local precisa ser outra pasta, fora da sincronização.';
+      }
+    } catch (e) {}
+    try {
+      if (await nuvem.resolve(local)) {
+        return `A pasta "${local.name}" está DENTRO da pasta na nuvem. Ela seria sincronizada junto e não serviria de cópia local.`;
+      }
+    } catch (e) {}
+    try {
+      if (await local.resolve(nuvem)) {
+        return `A pasta na nuvem está DENTRO de "${local.name}". Escolha uma pasta local separada.`;
+      }
     } catch (e) {}
     return null;
   }
 
+  // ------------------------------------------------------------------
+  // Nome do dispositivo (aparece no marcador de uso da nuvem)
+  // ------------------------------------------------------------------
+  async function dispositivo() {
+    try {
+      const cfg = await DB.get('rev_config', 'dispositivo');
+      if (cfg && cfg.nome) return cfg.nome;
+    } catch (e) {}
+    return null;
+  }
+
+  async function definirDispositivo(nome) {
+    const limpo = String(nome || '').trim().slice(0, 60);
+    if (!limpo) return false;
+    try { await DB.put('rev_config', { id_config: 'dispositivo', nome: limpo }); return true; }
+    catch (e) { return false; }
+  }
+
+  async function infoSessao() {
+    return { dispositivo: (await dispositivo()) || 'dispositivo sem nome',
+             sessao: _sessao,
+             versao: (typeof window !== 'undefined' && window.App && window.App.versao) ? window.App.versao() : '' };
+  }
+
   /** Garante permissão de leitura/escrita no handle (pode exigir clique). */
   async function garantirPermissao(handle, modo) {
-    handle = handle || _pasta;
+    handle = handle || raiz();
     if (!handle) return false;
     const opts = { mode: modo || 'readwrite' };
     if ((await handle.queryPermission(opts)) === 'granted') return true;
@@ -2655,14 +2979,18 @@ const Armazenamento = (function () {
     return false;
   }
 
-  /** Reconecta a pasta salva pedindo permissão (use a partir de um clique). */
+  /** Reconecta as pastas salvas pedindo permissão (use a partir de um clique). */
   async function reconectarPasta() {
     // se o handle já está em memória (carregado por estadoPasta no render), NÃO refaz o DB.get
     // antes do requestPermission — isso preserva o gesto do usuário (exigência do File System Access).
-    if (!_pasta) { await restaurarPastaSalva(); }
-    if (!_pasta) return null;
-    const ok = await garantirPermissao(_pasta, 'readwrite');
-    return ok ? _pasta : null;
+    if (!_pasta && !_local) { await restaurarPastaSalva(); }
+    if (!_pasta && !_local) return null;
+    // no modo nuvem a pasta LOCAL é a que precisa de permissão primeiro (é a de trabalho);
+    // a da nuvem também, porque é dela que vem o banco.
+    let ok = false;
+    if (_local) ok = await garantirPermissao(_local, 'readwrite');
+    if (_pasta) { const okN = await garantirPermissao(_pasta, 'readwrite'); ok = _local ? (ok || okN) : okN; }
+    return ok ? raiz() : null;
   }
 
   /**
@@ -2671,17 +2999,29 @@ const Armazenamento = (function () {
    * Corrige o caso em que o handle é restaurado mas a permissão expirou (recarregar a página).
    */
   async function estadoPasta() {
-    if (!_pasta) {
-      try { const cfg = await DB.get('rev_config', 'pasta_trabalho'); if (cfg && cfg.handle) _pasta = cfg.handle; } catch (e) {}
-    }
-    if (!_pasta) return { temPasta: false, conectada: false, nome: null };
-    let conectada = false;
-    try { conectada = (await _pasta.queryPermission({ mode: 'readwrite' })) === 'granted'; } catch (e) {}
-    return { temPasta: true, conectada, nome: _pasta.name };
+    if (!_pasta && !_local) { await restaurarPastaSalva(); }
+    const perm = async (h) => {
+      if (!h) return false;
+      try { return (await h.queryPermission({ mode: 'readwrite' })) === 'granted'; } catch (e) { return false; }
+    };
+    const nuvem = { temPasta: !!_pasta, conectada: await perm(_pasta), nome: _pasta ? _pasta.name : null };
+    const local = { temPasta: !!_local, conectada: await perm(_local), nome: _local ? _local.name : null };
+    const r = raiz();
+    if (!r) return { temPasta: false, conectada: false, nome: null, modoNuvem: false, nuvem, local };
+    // os campos de topo descrevem a pasta ATIVA (aquela em que o app lê e grava),
+    // que é o que o resto da UI já consulta para saber se pode trabalhar.
+    return {
+      temPasta: true,
+      conectada: _local ? local.conectada : nuvem.conectada,
+      nome: r.name,
+      modoNuvem: modoNuvem(),
+      nuvem, local,
+    };
   }
 
-  function temPasta() { return !!_pasta; }
-  function nomePasta() { return _pasta ? _pasta.name : null; }
+  function temPasta() { return !!raiz(); }
+  function nomePasta() { const r = raiz(); return r ? r.name : null; }
+  function temPastaNuvem() { return !!_pasta; }
 
   // ------------------------------------------------------------------
   // Nome seguro de pasta/arquivo
@@ -2694,19 +3034,47 @@ const Armazenamento = (function () {
       .slice(0, 80);
   }
 
-  async function pastaDoCliente(cnpj, criar) {
-    if (!_pasta) throw new Error('Defina a pasta de trabalho primeiro.');
+  /** Nome da subpasta do cliente: "CNPJ - Razão Social". Igual nas duas raízes. */
+  async function nomePastaCliente(cnpj) {
     const cliente = await DB.get('rev_clientes', cnpj);
     const razao = sanitizar((cliente && cliente.razao_social) || '');
-    const nome = razao ? `${cnpj} - ${razao}` : `${cnpj}`;
-    return _pasta.getDirectoryHandle(nome, { create: !!criar });
+    return razao ? `${cnpj} - ${razao}` : `${cnpj}`;
+  }
+
+  /** Pasta do cliente dentro de uma raiz específica (local ou nuvem). */
+  async function pastaDoClienteEm(dir, cnpj, criar) {
+    if (!dir) throw new Error('Pasta não definida.');
+    return dir.getDirectoryHandle(await nomePastaCliente(cnpj), { create: !!criar });
+  }
+
+  /** Pasta do cliente na raiz ATIVA (a local, quando o modo nuvem está ligado). */
+  async function pastaDoCliente(cnpj, criar) {
+    if (!raiz()) throw new Error('Defina a pasta de trabalho primeiro.');
+    return pastaDoClienteEm(raiz(), cnpj, criar);
   }
 
   // ------------------------------------------------------------------
   // Salvar / carregar cliente em arquivo (na pasta de trabalho)
   // ------------------------------------------------------------------
+  /**
+   * Grava o JSON, mas NÃO reescreve se o conteúdo já é idêntico ao que está no
+   * arquivo. Duas razões:
+   *   1) o modo nuvem descobre o que devolver pelo mtime; reescrever um arquivo
+   *      igual marca ele como alterado e faz "devolver só o que mexeu" virar
+   *      "devolver tudo" (era o que acontecia na v3.21.0: 105 de 105 pendentes);
+   *   2) o salvamento por ano regrava o cliente inteiro a cada checkpoint de
+   *      importação, e o maior cliente tem 634 MB. Pular o que não mudou economiza
+   *      a maior parte dessa escrita.
+   * Compara o tamanho primeiro (de graça) e só lê os bytes se os tamanhos baterem.
+   */
   async function escreverJSON(dir, nome, obj) {
     const txt = JSON.stringify(obj);
+    try {
+      const atual = await (await dir.getFileHandle(nome)).getFile();
+      if (atual.size === new Blob([txt]).size && (await atual.text()) === txt) {
+        return 0;   // idêntico: não toca no arquivo nem no mtime
+      }
+    } catch (e) { /* ainda não existe: grava normalmente */ }
     const fh = await dir.getFileHandle(nome, { create: true });
     const w = await fh.createWritable();
     await w.write(txt);
@@ -2756,8 +3124,11 @@ const Armazenamento = (function () {
   }
 
   async function salvarCliente(cnpj) {
-    if (!_pasta) return { ok: false, motivo: 'sem-pasta' };
-    if (!(await garantirPermissao(_pasta, 'readwrite'))) return { ok: false, motivo: 'sem-permissao' };
+    if (!raiz()) return { ok: false, motivo: 'sem-pasta' };
+    if (!(await garantirPermissao(raiz(), 'readwrite'))) return { ok: false, motivo: 'sem-permissao' };
+    // leva as preferências do localStorage (regime, textos do laudo) para o
+    // cadastro ANTES do dump, senão a calibragem não viaja no cliente.json
+    try { if (window.Clientes && Clientes.persistirPrefs) await Clientes.persistirPrefs(cnpj); } catch (e) {}
     const dir = await pastaDoCliente(cnpj, true);
     const { global, porAno, versao_db } = await DB.dumpClientePorAno(cnpj);
     let bytes = 0;
@@ -2771,6 +3142,10 @@ const Armazenamento = (function () {
       anosSet.add(p.ano);
     }
     const anos = [...anosSet].sort();
+    // no modo nuvem, gravar na cópia local cria pendência de devolução.
+    // O aviso de "fechar sem devolver" precisa ser síncrono (beforeunload não
+    // espera promessa), por isso a flag em memória além do _sync.json no disco.
+    if (modoNuvem()) _pendenciaLocal = true;
     return { ok: true, pasta: dir.name, arquivo: anos.length ? `cliente.json + ${partes.length} parte(s) em ${anos.length} ano(s)` : 'cliente.json', anos, partes: partes.length, bytes };
   }
 
@@ -2780,8 +3155,8 @@ const Armazenamento = (function () {
    * de transação ainda está salvo no disco.
    */
   async function inspecionarDisco(cnpj) {
-    if (!_pasta) return { erro: 'sem-pasta' };
-    if (!(await garantirPermissao(_pasta, 'read'))) return { erro: 'sem-permissao' };
+    if (!raiz()) return { erro: 'sem-pasta' };
+    if (!(await garantirPermissao(raiz(), 'read'))) return { erro: 'sem-permissao' };
     let dir;
     try { dir = await pastaDoCliente(cnpj, false); } catch (e) { return { erro: 'pasta do cliente inacessível: ' + e.message }; }
     const anos = {};        // ano -> { kb, stores:{store:count}, origem:{} }
@@ -2825,7 +3200,7 @@ const Armazenamento = (function () {
     // (o objetivo é liberar a REIMPORTAÇÃO dos XMLs — o dedup por SHA olha
     // a custódia; removida, os mesmos arquivos reprocessam e os itens são
     // sobrescritos pelo mesmo id, ganhando os campos novos do parser)
-    const temPastaOk = _pasta && (await garantirPermissao(_pasta, 'readwrite').catch(() => false));
+    const temPastaOk = raiz() && (await garantirPermissao(raiz(), 'readwrite').catch(() => false));
     let regs = [];
     try { regs = await DB.getByIndex('rev_arquivos', 'cnpj_empresa', cnpj); } catch (e) { return { erro: 'falha lendo rev_arquivos: ' + e.message }; }
     const xmls = regs.filter(a => a.tipo === 'xml_nfe');
@@ -2841,8 +3216,8 @@ const Armazenamento = (function () {
 
 
   async function listarAnosNaPasta(cnpj) {
-    if (!_pasta) return [];
-    if (!(await garantirPermissao(_pasta, 'read'))) return [];
+    if (!raiz()) return [];
+    if (!(await garantirPermissao(raiz(), 'read'))) return [];
     let dir;
     try { dir = await pastaDoCliente(cnpj, false); } catch (e) { return []; }
     const anos = new Set();
@@ -2860,8 +3235,8 @@ const Armazenamento = (function () {
    * inventário para enxergar a cobertura completa. Lê um arquivo por vez (memória limitada).
    */
   async function arquivosNaPasta(cnpj) {
-    if (!_pasta) return [];
-    if (!(await garantirPermissao(_pasta, 'read'))) return [];
+    if (!raiz()) return [];
+    if (!(await garantirPermissao(raiz(), 'read'))) return [];
     let dir;
     try { dir = await pastaDoCliente(cnpj, false); } catch (e) { return []; }
     const handles = [];
@@ -2887,9 +3262,15 @@ const Armazenamento = (function () {
    * Antes de descarregar, salva o estado atual no disco (não perde nada).
    */
   async function carregarAnos(cnpj, anos, opts) {
-    if (!_pasta) throw new Error('Defina a pasta de trabalho primeiro.');
-    if (!(await garantirPermissao(_pasta, 'readwrite'))) throw new Error('Sem permissão na pasta.');
-    const dir = await pastaDoCliente(cnpj, false);
+    if (!raiz()) throw new Error('Defina a pasta de trabalho primeiro.');
+    if (!(await garantirPermissao(raiz(), 'readwrite'))) throw new Error('Sem permissão na pasta.');
+    // modo nuvem: garante que a cópia local está em dia com a nuvem antes de ler.
+    // No modo ano-a-ano isto é chamado várias vezes seguidas para o mesmo cliente;
+    // a partir da segunda vez o entrarCliente sai na hora (já sincronizado).
+    if (modoNuvem()) {
+      try { await entrarCliente(cnpj, {}, (opts && opts.onSync) || null); } catch (e) {}
+    }
+    const dir = await pastaDoCliente(cnpj, true);
     if (!opts || opts.salvarAntes !== false) { try { await salvarCliente(cnpj); } catch (e) {} }
     await DB.limparCliente(cnpj);
     const alvo = new Set((anos || []).map(String));
@@ -2917,8 +3298,8 @@ const Armazenamento = (function () {
   /** Salva todos os clientes existentes no banco. */
   async function salvarTodos(onProgress) {
     const prog = onProgress || (() => {});
-    if (!_pasta) return { ok: false, motivo: 'sem-pasta' };
-    if (!(await garantirPermissao(_pasta, 'readwrite'))) return { ok: false, motivo: 'sem-permissao' };
+    if (!raiz()) return { ok: false, motivo: 'sem-pasta' };
+    if (!(await garantirPermissao(raiz(), 'readwrite'))) return { ok: false, motivo: 'sem-permissao' };
     const clientes = await DB.getAll('rev_clientes');
     let n = 0;
     for (const c of clientes) {
@@ -2975,10 +3356,10 @@ const Armazenamento = (function () {
   /** Varre a pasta de trabalho e restaura TODOS os clientes encontrados. */
   async function carregarTodosDaPasta(onProgress) {
     const prog = onProgress || (() => {});
-    if (!_pasta) throw new Error('Defina a pasta de trabalho primeiro.');
-    if (!(await garantirPermissao(_pasta, 'read'))) throw new Error('Sem permissão de leitura na pasta.');
+    if (!raiz()) throw new Error('Defina a pasta de trabalho primeiro.');
+    if (!(await garantirPermissao(raiz(), 'read'))) throw new Error('Sem permissão de leitura na pasta.');
     const dirs = [];
-    for await (const [nome, h] of _pasta.entries()) {
+    for await (const [nome, h] of raiz().entries()) {
       if (h.kind === 'directory') dirs.push(h);
     }
     const resultados = [];
@@ -2995,6 +3376,168 @@ const Armazenamento = (function () {
     }
     prog(100, 'Concluído.');
     return resultados;
+  }
+
+  // ==================================================================
+  // MODO NUVEM — entrar (baixar da nuvem) e devolver (subir o que mexeu)
+  // A lógica de comparação e cópia mora no nuvem.js; aqui ficam os handles,
+  // a permissão e a memória de qual cliente já foi aberto nesta sessão.
+  // ==================================================================
+  const _abertos = new Set();   // CNPJs já sincronizados nesta sessão
+  let _pendenciaLocal = false;  // gravou na cópia local e ainda não devolveu
+
+  /** Há trabalho na cópia local ainda não devolvido? (checagem síncrona, para o beforeunload) */
+  function haPendenciaLocal() { return modoNuvem() && _pendenciaLocal; }
+
+  function _Nuvem() {
+    return (typeof window !== 'undefined' ? window.Nuvem : globalThis.Nuvem);
+  }
+
+  /** Mapa store → keyPath, direto do schema do DB. Habilita a mesclagem
+   *  registro a registro do modo nuvem (conflito vira união, não descarte). */
+  function _keyPaths() {
+    const m = {};
+    try { for (const t of DB.listarTabelas()) m[t.nome] = t.keyPath; } catch (e) {}
+    return m;
+  }
+
+  /**
+   * Prepara o cliente para trabalho: traz da nuvem o que mudou e marca como em uso.
+   * Sem modo nuvem, é no-op (o app trabalha direto na pasta configurada).
+   * Repetir na mesma sessão não refaz a conferência, a menos que opts.forcar.
+   */
+  async function entrarCliente(cnpj, opts, onProgress) {
+    opts = opts || {};
+    if (!modoNuvem()) return { ok: true, modo: 'direto' };
+    if (!cnpj) return { ok: false, motivo: 'sem-cliente' };
+    if (_abertos.has(cnpj) && !opts.forcar) return { ok: true, modo: 'nuvem', jaAberto: true, copiados: 0, avisos: [] };
+
+    if (!(await garantirPermissao(_local, 'readwrite'))) return { ok: false, motivo: 'sem-permissao-local' };
+
+    const dirLocal = await pastaDoClienteEm(_local, cnpj, true);
+    let dirNuvem = null;
+    if (await garantirPermissao(_pasta, 'readwrite').catch(() => false)) {
+      // create:true porque um cliente novo ainda não tem pasta na nuvem
+      try { dirNuvem = await pastaDoClienteEm(_pasta, cnpj, true); } catch (e) { dirNuvem = null; }
+    }
+
+    const info = await infoSessao();
+    const r = await _Nuvem().entrar(dirNuvem, dirLocal, info, onProgress, { keyPaths: _keyPaths() });
+    if (r.ok) _abertos.add(cnpj);
+    return { ...r, modo: 'nuvem' };
+  }
+
+  /**
+   * Devolve para a nuvem os arquivos alterados nesta máquina e libera o marcador.
+   * Chamado ao trocar de cliente, no botão manual e no encerramento.
+   */
+  async function devolverCliente(cnpj, opts, onProgress) {
+    opts = opts || {};
+    if (!modoNuvem()) return { ok: true, modo: 'direto', devolvidos: 0 };
+    if (!cnpj) return { ok: false, motivo: 'sem-cliente' };
+    if (!(await garantirPermissao(_local, 'read'))) return { ok: false, motivo: 'sem-permissao-local' };
+    if (!(await garantirPermissao(_pasta, 'readwrite'))) return { ok: false, motivo: 'sem-permissao-nuvem' };
+
+    const dirLocal = await pastaDoClienteEm(_local, cnpj, false).catch(() => null);
+    if (!dirLocal) return { ok: true, devolvidos: 0, bytes: 0, avisos: [] };
+    const dirNuvem = await pastaDoClienteEm(_pasta, cnpj, true);
+
+    const r = await _Nuvem().devolver(dirNuvem, dirLocal, { ...opts, keyPaths: _keyPaths() }, onProgress);
+    if (r.ok && opts.fechar !== false) _abertos.delete(cnpj);
+    if (r.ok) {
+      // só zera a flag se NENHUM cliente ficou pendente (pode haver outros)
+      const restantes = await clientesPendentes().catch(() => [{}]);
+      _pendenciaLocal = restantes.length > 0;
+    }
+    return { ...r, modo: 'nuvem' };
+  }
+
+  /** Estado do modo nuvem para um cliente (só leitura, não altera nada). */
+  async function estadoNuvemCliente(cnpj) {
+    if (!modoNuvem()) return { modo: 'direto' };
+    if (!cnpj) return { modo: 'nuvem', pendentes: 0 };
+    const dirLocal = await pastaDoClienteEm(_local, cnpj, false).catch(() => null);
+    if (!dirLocal) return { modo: 'nuvem', pendentes: 0, arquivos_locais: 0, semCopiaLocal: true };
+    let dirNuvem = null;
+    try {
+      if ((await _pasta.queryPermission({ mode: 'read' })) === 'granted') {
+        dirNuvem = await pastaDoClienteEm(_pasta, cnpj, false).catch(() => null);
+      }
+    } catch (e) {}
+    const info = await infoSessao();
+    return { modo: 'nuvem', aberto: _abertos.has(cnpj), ...(await _Nuvem().estado(dirNuvem, dirLocal, info)) };
+  }
+
+  /** Varre a cópia local e diz quais clientes têm alteração ainda não devolvida. */
+  async function clientesPendentes() {
+    if (!modoNuvem()) return [];
+    const out = [];
+    try {
+      if ((await _local.queryPermission({ mode: 'read' })) !== 'granted') return [];
+      for await (const [nome, h] of _local.entries()) {
+        if (h.kind !== 'directory') continue;
+        const cnpj = (nome.match(/^(\d{14})/) || [])[1];
+        if (!cnpj) continue;
+        const meta = await _Nuvem().lerMeta(h);
+        const inv = await _Nuvem().inventario(h);
+        const n = _Nuvem().contarPendentes(inv, meta);
+        if (n > 0) out.push({ cnpj, pasta: nome, pendentes: n });
+      }
+    } catch (e) {}
+    return out;
+  }
+
+  /** Devolve todos os clientes com pendência (usado no "devolver tudo"). */
+  async function devolverTodosPendentes(onProgress) {
+    const prog = onProgress || (() => {});
+    const pend = await clientesPendentes();
+    const res = [];
+    for (let i = 0; i < pend.length; i++) {
+      const p = pend[i];
+      const base = Math.round((i / Math.max(pend.length, 1)) * 100);
+      const r = await devolverCliente(p.cnpj, {}, (pct, m) =>
+        prog(base + Math.round(pct / Math.max(pend.length, 1)), `${p.pasta}: ${m || ''}`));
+      res.push({ ...p, ...r });
+    }
+    prog(100, pend.length ? 'Devolução concluída.' : 'Nada pendente.');
+    return res;
+  }
+
+  /** Libera o marcador de uso de um cliente (sessão travada em outra máquina). */
+  async function liberarMarcadorCliente(cnpj) {
+    if (!modoNuvem() || !cnpj) return false;
+    if (!(await garantirPermissao(_pasta, 'readwrite'))) return false;
+    const dirNuvem = await pastaDoClienteEm(_pasta, cnpj, false).catch(() => null);
+    return _Nuvem().liberarMarcador(dirNuvem);
+  }
+
+  // ------------------------------------------------------------------
+  // selic_extra.csv — tabela complementável em produção (padrão da seção
+  // 3.5 da documentação do SintegraView): um CSV ao lado do banco, linhas
+  // "AAAA-MM;taxa" (aceita AAAAMM e vírgula decimal), atualiza a Selic sem
+  // esperar versão nova do app. Lido no boot, se a permissão já estiver ativa.
+  // ------------------------------------------------------------------
+  async function carregarSelicExtra() {
+    try {
+      const r = raiz();
+      if (!r || !(typeof window !== 'undefined' && window.Selic)) return 0;
+      if ((await r.queryPermission({ mode: 'read' })) !== 'granted') return 0;
+      const fh = await r.getFileHandle('selic_extra.csv').catch(() => null);
+      if (!fh) return 0;
+      const texto = await (await fh.getFile()).text();
+      let aplicadas = 0;
+      for (const linha of texto.split(/\r?\n/)) {
+        const m = /^\s*(\d{4})-?(\d{2})\s*[;,]\s*([\d.,]+)\s*$/.exec(linha);
+        if (!m) continue;
+        const per = `${m[1]}-${m[2]}`;
+        const taxa = Number(m[3].replace(',', '.'));
+        if (!isFinite(taxa)) continue;
+        // só complementa: não sobrepõe mês que já existe (oficial ou editado)
+        if (Selic.taxa(per) == null && Selic.salvar(per, taxa)) aplicadas++;
+      }
+      if (aplicadas) console.log(`selic_extra.csv: ${aplicadas} mês(es) complementados.`);
+      return aplicadas;
+    } catch (e) { return 0; }
   }
 
   // ------------------------------------------------------------------
@@ -3204,7 +3747,12 @@ const Armazenamento = (function () {
   return {
     suportado, solicitarPersistencia,
     definirPastaTrabalho, restaurarPastaSalva, reconectarPasta, estadoPasta,
-    garantirPermissao, temPasta, nomePasta,
+    garantirPermissao, temPasta, nomePasta, temPastaNuvem,
+    // modo nuvem
+    modoNuvem, definirPastaLocal, removerPastaLocal,
+    dispositivo, definirDispositivo,
+    entrarCliente, devolverCliente, estadoNuvemCliente, haPendenciaLocal, carregarSelicExtra,
+    clientesPendentes, devolverTodosPendentes, liberarMarcadorCliente,
     salvarCliente, salvarTodos,
     listarAnosNaPasta, carregarAnos, arquivosNaPasta, inspecionarDisco, limparCustodiaXml,
     carregarClienteDeDir, carregarTodosDaPasta,
@@ -3214,6 +3762,569 @@ const Armazenamento = (function () {
 })();
 
 window.Armazenamento = Armazenamento;
+
+
+// ===================== nuvem.js =====================
+// =====================================================================
+// Revisor Fiscal Prime — nuvem.js
+// MODO NUVEM: copiar para trabalhar, devolver ao encerrar.
+// Porte do padrão do SintegraView (seção 1 da DOCUMENTACAO_AUTOMACOES),
+// adaptado do Python/SQLite para o navegador + File System Access.
+//
+// POR QUE EXISTE
+//   O banco do cliente (cliente.json + ano_AAAA__store.json) mora numa pasta
+//   sincronizada (OneDrive). Trabalhar direto lá tem três problemas:
+//     1) com Files On-Demand, cada leitura pode disparar download silencioso
+//        e lento (o maior ano do maior cliente tem 159 MB);
+//     2) duas máquinas abrindo o mesmo cliente geram cópia conflitada;
+//     3) o sync pode subir um arquivo no meio de uma gravação.
+//   A solução é a mesma do Excel: trabalha numa cópia local e devolve no fim.
+//
+// COMO FUNCIONA
+//   ENTRAR   copia da nuvem para o local SÓ os arquivos que mudaram
+//            (compara mtime/size contra o _sync.json local) e grava o
+//            marcador _em_uso.json na nuvem.
+//   TRABALHA todas as leituras e gravações acontecem no local. Rápido,
+//            sem tráfego, sem conflito.
+//   DEVOLVER manda de volta SÓ os arquivos que você alterou, e apaga o marcador.
+//
+//   Sessão só de consulta não devolve nada. Reabrir sem mudança na origem
+//   não copia nada. Se o app morrer sem devolver, a próxima abertura detecta
+//   as pendências e oferece devolver (autorrecuperação).
+//
+// Este módulo é um MOTOR PURO: recebe os dois DirectoryHandle por parâmetro e
+// não conhece o resto do app. Quem tem os handles é o armazenamento.js.
+// =====================================================================
+
+const Nuvem = (function () {
+  'use strict';
+
+  const ARQ_SYNC = '_sync.json';       // metadados da última cópia (só no local)
+  const ARQ_MARCADOR = '_em_uso.json'; // quem está com o cliente aberto (só na nuvem)
+  const INTERNOS = new Set([ARQ_SYNC, ARQ_MARCADOR]);
+
+  // ------------------------------------------------------------------
+  // Helpers de arquivo
+  // ------------------------------------------------------------------
+  function ehDadoDoCliente(nome, kind) {
+    return kind === 'file' && /\.json$/i.test(nome) && !INTERNOS.has(nome)
+      && !/\.conflito-/.test(nome);
+  }
+
+  /** Lista {nome: {mtime, size}} dos arquivos de dado de um diretório. */
+  async function inventario(dir) {
+    const out = {};
+    if (!dir) return out;
+    for await (const [nome, h] of dir.entries()) {
+      if (!ehDadoDoCliente(nome, h.kind)) continue;
+      try {
+        const f = await h.getFile();
+        out[nome] = { mtime: f.lastModified, size: f.size };
+      } catch (e) {
+        // arquivo ilegível (ex.: só na nuvem e sem rede): registra para o chamador decidir
+        out[nome] = { erro: (e && e.message) || String(e) };
+      }
+    }
+    return out;
+  }
+
+  async function lerJSON(dir, nome) {
+    try {
+      const h = await dir.getFileHandle(nome);
+      return JSON.parse(await (await h.getFile()).text());
+    } catch (e) { return null; }
+  }
+
+  async function gravarJSON(dir, nome, obj) {
+    const h = await dir.getFileHandle(nome, { create: true });
+    const w = await h.createWritable();
+    await w.write(JSON.stringify(obj));
+    await w.close();
+  }
+
+  /**
+   * Os dois arquivos têm o mesmo conteúdo? Compara o tamanho primeiro (é de
+   * graça) e só lê os bytes se os tamanhos baterem. Serve para responder
+   * "esta cópia local é a mesma coisa que está na nuvem?" quando ainda não há
+   * histórico de sincronização, sem depender de mtime, que muda por qualquer
+   * regravação mesmo com o conteúdo idêntico.
+   */
+  async function mesmoConteudo(dirA, nomeA, dirB, nomeB) {
+    try {
+      const a = await (await dirA.getFileHandle(nomeA)).getFile();
+      const b = await (await dirB.getFileHandle(nomeB || nomeA)).getFile();
+      if (a.size !== b.size) return false;
+      return (await a.text()) === (await b.text());
+    } catch (e) { return false; }
+  }
+
+  async function apagar(dir, nome) {
+    try { await dir.removeEntry(nome); return true; } catch (e) { return false; }
+  }
+
+  /**
+   * Copia um arquivo de um diretório para o outro em STREAMING: os bytes vão
+   * direto do arquivo de origem para o de destino, sem passar por uma string
+   * em memória (um ano tem arquivos de 43 MB; ler como texto estoura à toa).
+   * O createWritable do File System Access já grava num arquivo temporário e
+   * só troca no close(), então uma cópia interrompida não deixa arquivo pela metade.
+   */
+  async function copiar(dirOrigem, dirDestino, nome) {
+    const fh = await dirOrigem.getFileHandle(nome);
+    const arquivo = await fh.getFile();          // aqui o OneDrive hidrata o arquivo, se preciso
+    const dh = await dirDestino.getFileHandle(nome, { create: true });
+    const w = await dh.createWritable();
+    await arquivo.stream().pipeTo(w);            // pipeTo fecha o writable no fim
+    const novo = await (await dirDestino.getFileHandle(nome)).getFile();
+    return { bytes: arquivo.size, mtime: novo.lastModified, size: novo.size,
+             mtimeOrigem: arquivo.lastModified, sizeOrigem: arquivo.size };
+  }
+
+  // ------------------------------------------------------------------
+  // Metadados de sincronização (o "<local>.sync.json" do SintegraView,
+  // aqui por arquivo, porque o banco é um conjunto e não um .db único)
+  // ------------------------------------------------------------------
+  function metaVazia() {
+    return { _formato: 'revisor_sync', arquivos: {}, copiado_em: null, devolvido_em: null };
+  }
+
+  async function lerMeta(dirLocal) {
+    const m = await lerJSON(dirLocal, ARQ_SYNC);
+    if (!m || !m.arquivos) return metaVazia();
+    return m;
+  }
+
+  /**
+   * Classifica cada arquivo comparando o estado atual das duas pastas contra o
+   * que ficou registrado na última sincronização. É o coração da decisão de
+   * "copiar só se mudou" e "devolver só se mexeu".
+   *
+   *   baixar     → mudou na nuvem (ou só existe lá)
+   *   devolver   → mudou no local (ou só existe aqui: trabalho não devolvido)
+   *   conflito   → mudou nos DOIS lados desde a última sincronização
+   *   indefinido → existe dos dois lados mas NUNCA foi sincronizado, então não
+   *                há histórico para comparar. NÃO é conflito: é falta de
+   *                informação, e quem resolve é o entrar(), comparando o
+   *                conteúdo. Tratar isto como conflito foi um bug da v3.21.0
+   *                que encheu a pasta de arquivos .conflito- idênticos.
+   *   parado     → nada mudou
+   */
+  function classificar(invNuvem, invLocal, meta) {
+    const plano = { baixar: [], devolver: [], conflito: [], indefinido: [], parado: [], ilegiveis: [] };
+    const nomes = new Set([...Object.keys(invNuvem), ...Object.keys(invLocal)]);
+    for (const nome of nomes) {
+      const n = invNuvem[nome], l = invLocal[nome];
+      const m = meta.arquivos[nome];
+      if ((n && n.erro) || (l && l.erro)) { plano.ilegiveis.push({ nome, motivo: (n && n.erro) || (l && l.erro) }); continue; }
+
+      if (n && !l) { plano.baixar.push(nome); continue; }          // só na nuvem
+      if (l && !n) { plano.devolver.push(nome); continue; }        // só no local (não devolvido)
+      if (!m) { plano.indefinido.push(nome); continue; }           // sem histórico: decide pelo conteúdo
+
+      const mudouNuvem = m.origem_mtime !== n.mtime || m.origem_size !== n.size;
+      const mudouLocal = m.local_mtime !== l.mtime || m.local_size !== l.size;
+      if (mudouNuvem && mudouLocal) { plano.conflito.push(nome); continue; }
+      if (mudouNuvem) { plano.baixar.push(nome); continue; }
+      if (mudouLocal) { plano.devolver.push(nome); continue; }
+      plano.parado.push(nome);
+    }
+    return plano;
+  }
+
+  // ------------------------------------------------------------------
+  // MESCLAGEM registro a registro (para conflito de verdade)
+  // ------------------------------------------------------------------
+  // Um "conflito" entre dois dumps do app quase nunca é conflito de fato: são
+  // conjuntos de REGISTROS com id estável (rev_depara, rev_log, rev_itens...),
+  // e a união dos dois lados preserva tudo. Guardar um lado num .conflito- e
+  // seguir só com o outro (comportamento até a v3.22.0) jogava fora o De/Para
+  // aprendido na outra máquina. A união usa o id de cada registro; em colisão,
+  // vence o que tiver carimbo de tempo mais novo, e o LOCAL desempata.
+  //
+  // Exceção: rev_achados tem id ALEATÓRIO por rodada — a união duplicaria os
+  // achados. Ali vale o lado local inteiro (se houver), que é a rodada desta máquina.
+  const CAMPOS_TEMPO = ['atualizado_em', 'detectado_em', 'executada_em', 'ts', 'importado_em'];
+  const SEM_UNIAO = new Set(['rev_achados']);
+
+  function mesclarDump(objLocal, objNuvem, keyPathDe) {
+    const formatos = new Set(['revisor_cliente', 'revisor_parte']);
+    if (!objLocal || !objNuvem) return null;
+    if (!formatos.has(objLocal._formato) || objLocal._formato !== objNuvem._formato) return null;
+
+    const tempoDe = (r) => { for (const k of CAMPOS_TEMPO) if (r && r[k]) return String(r[k]); return ''; };
+    const out = { ...objLocal, stores: {} };
+    const nomes = new Set([...Object.keys(objLocal.stores || {}), ...Object.keys(objNuvem.stores || {})]);
+    for (const st of nomes) {
+      const L = (objLocal.stores || {})[st] || [];
+      const N = (objNuvem.stores || {})[st] || [];
+      const kp = keyPathDe ? keyPathDe[st] : null;
+      if (!kp || typeof kp !== 'string' || SEM_UNIAO.has(st)) {
+        out.stores[st] = L.length ? L : N;      // sem união segura: local vence, nuvem cobre ausência
+        continue;
+      }
+      const m = new Map();
+      for (const r of N) if (r && r[kp] != null) m.set(r[kp], r);
+      for (const r of L) {
+        if (!r || r[kp] == null) continue;
+        const outro = m.get(r[kp]);
+        if (!outro || tempoDe(r) >= tempoDe(outro)) m.set(r[kp], r);
+      }
+      out.stores[st] = [...m.values()];
+    }
+    return out;
+  }
+
+  // ------------------------------------------------------------------
+  // Marcador de uso (quem está com este cliente aberto)
+  // ------------------------------------------------------------------
+  async function lerMarcador(dirNuvem) {
+    return lerJSON(dirNuvem, ARQ_MARCADOR);
+  }
+
+  async function gravarMarcador(dirNuvem, info) {
+    try {
+      await gravarJSON(dirNuvem, ARQ_MARCADOR, {
+        _formato: 'revisor_em_uso',
+        dispositivo: (info && info.dispositivo) || 'dispositivo sem nome',
+        sessao: (info && info.sessao) || '',
+        versao: (info && info.versao) || '',
+        inicio: new Date().toISOString(),
+      });
+      return true;
+    } catch (e) { return false; }
+  }
+
+  /** ISO UTC → data/hora LOCAL legível (o toISOString mostrado cru confundia: 3h adiantado no Brasil). */
+  function fmtLocal(iso) {
+    try {
+      const d = new Date(iso);
+      if (isNaN(d)) return iso || '';
+      return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR').slice(0, 5);
+    } catch (e) { return iso || ''; }
+  }
+
+  function alertaDeMarcador(marcador, info) {
+    if (!marcador) return null;
+    // minha própria sessão (mesma aba, sem reload)
+    if (marcador.sessao && info && marcador.sessao === info.sessao) return null;
+    // MESMA MÁQUINA: o SintegraView compara hostname; aqui o equivalente é o nome
+    // do dispositivo. Sem isto, recarregar a página gerava sessão nova e o app
+    // acusava "EM USO" contra o próprio usuário (visto no uso real, 27/07).
+    const meuDisp = (info && info.dispositivo) || '';
+    if (marcador.dispositivo && meuDisp && meuDisp !== 'dispositivo sem nome'
+        && marcador.dispositivo === meuDisp) return null;
+    const quando = fmtLocal(marcador.inicio);
+    return `Este cliente aparece como EM USO no dispositivo "${marcador.dispositivo || '?'}"`
+      + (quando ? ` desde ${quando}` : '')
+      + '. Se aquela sessão já terminou, pode continuar. Se as duas máquinas gravarem, o OneDrive vai criar cópia conflitada.';
+  }
+
+  // ------------------------------------------------------------------
+  // ENTRAR: nuvem → local (copia só o que mudou)
+  // ------------------------------------------------------------------
+  /**
+   * @param {FileSystemDirectoryHandle} dirNuvem  pasta do cliente na nuvem (pode ser null se offline)
+   * @param {FileSystemDirectoryHandle} dirLocal  pasta do cliente na cópia de trabalho
+   * @param {object} info    { dispositivo, sessao, versao }
+   * @param {function} onProgress (pct, msg)
+   * @param {object} opts    { keyPaths } — mapa store→keyPath; habilita a mesclagem em conflito
+   */
+  async function entrar(dirNuvem, dirLocal, info, onProgress, opts) {
+    opts = opts || {};
+    const prog = onProgress || (() => {});
+    const meta = await lerMeta(dirLocal);
+    const avisos = [];
+
+    if (!dirNuvem) {
+      const invLocal = await inventario(dirLocal);
+      return { ok: true, offline: true, copiados: 0, bytes: 0,
+        pendentes: Object.keys(invLocal).length ? contarPendentes(invLocal, meta) : 0,
+        avisos: ['Pasta na nuvem indisponível. Trabalhando com a cópia local; devolva quando a nuvem voltar.'] };
+    }
+
+    prog(5, 'Conferindo a pasta na nuvem…');
+    const marcador = await lerMarcador(dirNuvem);
+    const alerta = alertaDeMarcador(marcador, info);
+    if (alerta) avisos.push(alerta);
+
+    let invNuvem;
+    try { invNuvem = await inventario(dirNuvem); }
+    catch (e) {
+      const invLocal = await inventario(dirLocal);
+      return { ok: true, offline: true, copiados: 0, bytes: 0,
+        pendentes: contarPendentes(invLocal, meta),
+        avisos: [`Não deu para ler a pasta na nuvem (${e.message}). Usando a cópia local.`] };
+    }
+    const invLocal = await inventario(dirLocal);
+    const plano = classificar(invNuvem, invLocal, meta);
+
+    // ---- resolve os INDEFINIDOS (existem dos dois lados, sem histórico) ----
+    // Acontece na primeira sincronização de uma pasta em que o app já vinha
+    // gravando. Sem histórico, quem decide é o CONTEÚDO, não o mtime: se os
+    // dois lados são iguais, adota como sincronizado e segue a vida; só é
+    // conflito de verdade quando o conteúdo difere.
+    if (plano.indefinido.length) {
+      prog(8, `Conferindo ${plano.indefinido.length} arquivo(s) sem histórico de sincronização…`);
+      let adotados = 0;
+      for (const nome of plano.indefinido) {
+        if (await mesmoConteudo(dirNuvem, nome, dirLocal, nome)) {
+          meta.arquivos[nome] = {
+            origem_mtime: invNuvem[nome].mtime, origem_size: invNuvem[nome].size,
+            local_mtime: invLocal[nome].mtime, local_size: invLocal[nome].size,
+          };
+          plano.parado.push(nome);
+          adotados++;
+        } else {
+          plano.conflito.push(nome);
+        }
+      }
+      if (adotados) avisos.push(`${adotados} arquivo(s) já estavam iguais nos dois lados e foram adotados como sincronizados.`);
+    }
+
+    // ---- faxina de conflitos antigos ----
+    // A v3.21.0 gerava .conflito- para todo arquivo sem histórico, mesmo quando
+    // os dois lados eram idênticos. Os que forem cópia exata do arquivo atual
+    // são lixo e vão embora; os que diferem de verdade ficam.
+    const limpos = await limparConflitosIdenticos(dirLocal);
+    if (limpos) avisos.push(`${limpos} arquivo(s) .conflito- que eram cópia exata do arquivo atual foram removidos.`);
+
+    // conflito: primeiro tenta MESCLAR registro a registro (união pelos ids,
+    // nada se perde; o resultado vai para os DOIS lados na hora). Só quando a
+    // mesclagem não se aplica (arquivo fora do formato do app, JSON ilegível)
+    // cai no plano B: o local continua valendo e a versão da nuvem fica ao
+    // lado como .conflito-, para conferência manual.
+    let mesclados = 0;
+    for (const nome of plano.conflito) {
+      if (opts.keyPaths) {
+        try {
+          const objL = await lerJSON(dirLocal, nome);
+          const objN = await lerJSON(dirNuvem, nome);
+          const uniao = mesclarDump(objL, objN, opts.keyPaths);
+          if (uniao) {
+            await gravarJSON(dirLocal, nome, uniao);
+            const r = await copiar(dirLocal, dirNuvem, nome);   // commit da união nos dois lados
+            meta.arquivos[nome] = { origem_mtime: r.mtime, origem_size: r.size,
+                                    local_mtime: r.mtimeOrigem, local_size: r.sizeOrigem };
+            avisos.push(`"${nome}" mudou nos dois lados e foi MESCLADO registro a registro (nada se perdeu); o resultado já está no local e na nuvem.`);
+            mesclados++;
+            continue;
+          }
+        } catch (e) { /* mesclagem falhou: cai no plano B abaixo */ }
+      }
+      const carimbo = new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-');
+      const alvo = nome.replace(/\.json$/i, `.conflito-${carimbo}.json`);
+      try {
+        const fh = await dirNuvem.getFileHandle(nome);
+        const dh = await dirLocal.getFileHandle(alvo, { create: true });
+        const w = await dh.createWritable();
+        await (await fh.getFile()).stream().pipeTo(w);
+        // com a cópia da nuvem preservada, a versão LOCAL passa a valer: o meta
+        // registra o retrato atual da nuvem (origem_*) SEM os campos local_*,
+        // o que deixa o arquivo classificado como "devolver". Sem este registro
+        // o conflito nunca se resolvia: o devolver (que não sobrescreve o que
+        // mudou na nuvem) pulava o arquivo para sempre.
+        if (invNuvem[nome] && !invNuvem[nome].erro) {
+          meta.arquivos[nome] = { origem_mtime: invNuvem[nome].mtime, origem_size: invNuvem[nome].size };
+        }
+        avisos.push(`"${nome}" mudou na nuvem E aqui. A sua versão local vale (será devolvida na próxima devolução) e a da nuvem ficou guardada como "${alvo}".`);
+      } catch (e) {
+        avisos.push(`"${nome}" está em conflito e não deu para guardar a versão da nuvem: ${e.message}`);
+      }
+    }
+
+    let copiados = 0, bytes = 0;
+    const total = plano.baixar.length;
+    for (let i = 0; i < total; i++) {
+      const nome = plano.baixar[i];
+      const tam = invNuvem[nome] ? (invNuvem[nome].size / 1048576).toFixed(1) + ' MB' : '';
+      prog(10 + Math.round((i / Math.max(total, 1)) * 80), `Baixando da nuvem ${i + 1}/${total}: ${nome} ${tam}`);
+      try {
+        const r = await copiar(dirNuvem, dirLocal, nome);
+        meta.arquivos[nome] = { origem_mtime: r.mtimeOrigem, origem_size: r.sizeOrigem,
+                                local_mtime: r.mtime, local_size: r.size };
+        copiados++; bytes += r.bytes;
+      } catch (e) {
+        avisos.push(`"${nome}" não veio da nuvem (${e.message}). `
+          + (invLocal[nome] ? 'Usando a cópia local, que pode estar desatualizada.' : 'Este arquivo não está disponível nesta máquina.'));
+      }
+    }
+
+    // arquivos parados continuam válidos: só reafirma o metadado
+    for (const nome of plano.parado) {
+      if (!meta.arquivos[nome] && invNuvem[nome] && invLocal[nome]) {
+        meta.arquivos[nome] = { origem_mtime: invNuvem[nome].mtime, origem_size: invNuvem[nome].size,
+                                local_mtime: invLocal[nome].mtime, local_size: invLocal[nome].size };
+      }
+    }
+
+    meta.copiado_em = new Date().toISOString();
+    await gravarJSON(dirLocal, ARQ_SYNC, meta);
+
+    prog(95, 'Marcando o cliente como em uso…');
+    await gravarMarcador(dirNuvem, info);
+
+    prog(100, copiados ? `Pronto: ${copiados} arquivo(s) atualizados da nuvem.` : 'Pronto: nada mudou na nuvem.');
+    return { ok: true, offline: false, copiados, bytes, mesclados,
+      pendentes: plano.devolver.length, conflitos: plano.conflito.length - mesclados,
+      inalterados: plano.parado.length, avisos };
+  }
+
+  /**
+   * Remove os arquivos ".conflito-" que são cópia EXATA do arquivo atual.
+   * Um conflito só tem valor se guardar uma versão diferente; idêntico é ruído
+   * ocupando disco e assustando quem abre a pasta. Nunca apaga um que difere.
+   */
+  async function limparConflitosIdenticos(dirLocal) {
+    const alvos = [];
+    try {
+      for await (const [nome, h] of dirLocal.entries()) {
+        if (h.kind !== 'file') continue;
+        const m = /^(.*)\.conflito-[0-9T:-]+\.json$/i.exec(nome);
+        if (m) alvos.push({ conflito: nome, base: m[1] + '.json' });
+      }
+    } catch (e) { return 0; }
+    let n = 0;
+    for (const a of alvos) {
+      if (await mesmoConteudo(dirLocal, a.conflito, dirLocal, a.base)) {
+        if (await apagar(dirLocal, a.conflito)) n++;
+      }
+    }
+    return n;
+  }
+
+  function contarPendentes(invLocal, meta) {
+    let n = 0;
+    for (const [nome, l] of Object.entries(invLocal)) {
+      const m = meta.arquivos[nome];
+      if (!m || m.local_mtime !== l.mtime || m.local_size !== l.size) n++;
+    }
+    return n;
+  }
+
+  // ------------------------------------------------------------------
+  // DEVOLVER: local → nuvem (manda só o que mexeu)
+  // ------------------------------------------------------------------
+  async function devolver(dirNuvem, dirLocal, opts, onProgress) {
+    opts = opts || {};
+    const prog = onProgress || (() => {});
+    if (!dirNuvem) return { ok: false, motivo: 'sem-nuvem', devolvidos: 0, bytes: 0 };
+
+    const meta = await lerMeta(dirLocal);
+    const invLocal = await inventario(dirLocal);
+    const alvos = [];
+    for (const [nome, l] of Object.entries(invLocal)) {
+      if (l.erro) continue;
+      const m = meta.arquivos[nome];
+      if (!m || m.local_mtime !== l.mtime || m.local_size !== l.size) alvos.push(nome);
+    }
+
+    if (!alvos.length) {
+      if (opts.removerMarcador !== false) await apagar(dirNuvem, ARQ_MARCADOR);
+      prog(100, 'Nada a devolver: a sessão não alterou o banco.');
+      return { ok: true, devolvidos: 0, bytes: 0, adotados: 0, mesclados: 0, avisos: [] };
+    }
+
+    // estado atual da nuvem, para NUNCA sobrescrever às cegas o que mudou lá
+    // (outra máquina pode ter devolvido depois da nossa última sincronização)
+    const invNuvem = await inventario(dirNuvem);
+
+    let devolvidos = 0, bytes = 0, adotados = 0, mesclados = 0;
+    const avisos = [];
+    for (let i = 0; i < alvos.length; i++) {
+      const nome = alvos[i];
+      const tam = invLocal[nome] ? (invLocal[nome].size / 1048576).toFixed(1) + ' MB' : '';
+      prog(Math.round((i / alvos.length) * 95), `Devolvendo ${i + 1}/${alvos.length}: ${nome} ${tam}`);
+      try {
+        const n = invNuvem[nome];
+        const m = meta.arquivos[nome];
+        const nuvemMudou = n && !n.erro && (!m || m.origem_mtime !== n.mtime || m.origem_size !== n.size);
+
+        if (nuvemMudou) {
+          // a nuvem NÃO está como esperávamos. Três saídas, nesta ordem:
+          // 1) o conteúdo já é igual → só adota como sincronizado, sem copiar
+          //    (mata os "pendentes" fantasmas de arquivos salvos iguais nos dois lados);
+          if (await mesmoConteudo(dirLocal, nome, dirNuvem, nome)) {
+            meta.arquivos[nome] = { origem_mtime: n.mtime, origem_size: n.size,
+                                    local_mtime: invLocal[nome].mtime, local_size: invLocal[nome].size };
+            adotados++;
+            continue;
+          }
+          // 2) dá para mesclar registro a registro → união vai para os dois lados;
+          if (opts.keyPaths) {
+            const objL = await lerJSON(dirLocal, nome);
+            const objN = await lerJSON(dirNuvem, nome);
+            const uniao = (objL && objN) ? mesclarDump(objL, objN, opts.keyPaths) : null;
+            if (uniao) {
+              await gravarJSON(dirLocal, nome, uniao);
+              const r = await copiar(dirLocal, dirNuvem, nome);
+              meta.arquivos[nome] = { origem_mtime: r.mtime, origem_size: r.size,
+                                      local_mtime: r.mtimeOrigem, local_size: r.sizeOrigem };
+              mesclados++; devolvidos++; bytes += r.bytes;
+              continue;
+            }
+          }
+          // 3) não dá para decidir com segurança → PULA e avisa. Sincronizar
+          //    o cliente resolve (o entrar trata conflito com mesclagem/plano B).
+          avisos.push(`"${nome}" mudou na nuvem desde a última sincronização e não foi sobrescrito. `
+            + `Clique em "Sincronizar cliente ativo" para resolver e devolva de novo.`);
+          continue;
+        }
+
+        const r = await copiar(dirLocal, dirNuvem, nome);
+        meta.arquivos[nome] = { origem_mtime: r.mtime, origem_size: r.size,
+                                local_mtime: r.mtimeOrigem, local_size: r.sizeOrigem };
+        devolvidos++; bytes += r.bytes;
+      } catch (e) {
+        avisos.push(`"${nome}" não subiu para a nuvem: ${e.message}`);
+      }
+    }
+
+    meta.devolvido_em = new Date().toISOString();
+    await gravarJSON(dirLocal, ARQ_SYNC, meta);
+    if (opts.removerMarcador !== false && !avisos.length) await apagar(dirNuvem, ARQ_MARCADOR);
+
+    prog(100, `Devolvido: ${devolvidos} arquivo(s).`);
+    return { ok: !avisos.length, devolvidos, bytes, adotados, mesclados, avisos };
+  }
+
+  // ------------------------------------------------------------------
+  // ESTADO (para a UI mostrar sem alterar nada)
+  // ------------------------------------------------------------------
+  async function estado(dirNuvem, dirLocal, info) {
+    const meta = await lerMeta(dirLocal);
+    const invLocal = await inventario(dirLocal);
+    const pendentes = contarPendentes(invLocal, meta);
+    let marcador = null, alerta = null;
+    if (dirNuvem) {
+      marcador = await lerMarcador(dirNuvem);
+      alerta = alertaDeMarcador(marcador, info);
+    }
+    return {
+      pendentes,
+      arquivos_locais: Object.keys(invLocal).length,
+      copiado_em: meta.copiado_em,
+      devolvido_em: meta.devolvido_em,
+      marcador, alerta,
+    };
+  }
+
+  /** Libera o marcador sem devolver (uso de emergência: sessão travada em outra máquina). */
+  async function liberarMarcador(dirNuvem) {
+    if (!dirNuvem) return false;
+    return apagar(dirNuvem, ARQ_MARCADOR);
+  }
+
+  return {
+    ARQ_SYNC, ARQ_MARCADOR,
+    entrar, devolver, estado, liberarMarcador,
+    limparConflitosIdenticos, mesclarDump, fmtLocal,
+    // expostas para teste
+    inventario, classificar, lerMeta, contarPendentes, alertaDeMarcador, copiar, mesmoConteudo,
+  };
+})();
+
+if (typeof window !== 'undefined') window.Nuvem = Nuvem;
+else globalThis.Nuvem = Nuvem;
 
 
 // ===================== parser_sped.js =====================
@@ -5890,21 +7001,23 @@ if (typeof window !== 'undefined') window.Dossie = Dossie;
 const Conhecimento = (function () {
   'use strict';
 
-  const VERSAO_BASE = '2026.06';   // versão da base de conhecimento tributário
-  const ATUALIZADO = '2026-06-27';
+  const VERSAO_BASE = '2026.07';   // versão da base de conhecimento tributário
+  const ATUALIZADO = '2026-07-16';
 
   // ------------------------------------------------------------------
   // SETORES de mercado em que o programa tem conhecimento
   //   nivel: 'especialista' (base madura) | 'parcial' | 'roadmap' (planejado)
   // ------------------------------------------------------------------
   const SETORES = [
-    { id: 'cervejaria', nome: 'Cervejaria / Indústria de Bebidas', cnae: '1113-5/02',
+    { id: 'cervejaria', nome: 'Cervejaria / Indústria de Bebidas', cnae: '1113-5/02', industria: true,
       nivel: 'especialista',
       obs: 'Fabricante de cerveja na condição de substituto tributário. Cobre ST por PMPF, FEM, microcervejaria, crédito de insumos, CIAP, importação, restituição de ST, taproom, perdas e exportação.' },
-    { id: 'supermercado', nome: 'Supermercados / Varejo', cnae: '4711-3/02',
+    { id: 'supermercado', nome: 'Supermercados / Varejo', cnae: '4711-3/02', industria: false,
       nivel: 'roadmap', obs: 'No mapa. Demanda base própria de ST de varejo, cesta básica e crédito presumido.' },
-    { id: 'automotivo', nome: 'Indústria automotiva / Autopeças', cnae: '29.xx',
+    { id: 'automotivo', nome: 'Indústria automotiva / Autopeças', cnae: '29.xx', industria: true,
       nivel: 'roadmap', obs: 'No mapa. Demanda base de ST de autopeças, regimes especiais e ICMS interestadual.' },
+    { id: 'outro', nome: 'Outro setor (só regras genéricas)', cnae: '', industria: false,
+      nivel: 'parcial', obs: 'Roda apenas as auditorias multi-fonte genéricas (A1 a A5 e federais sem setor). As regras setoriais ficam disponíveis, desmarcadas.' },
   ];
 
   // ------------------------------------------------------------------
@@ -6330,6 +7443,12 @@ const Conhecimento = (function () {
       fundamento: 'STJ EREsp 1.517.492 e Tema 1182 (até 2023); Lei 14.789/2023 (2024+)',
       le: 'Benefício = destaque (18%/12%) − recolhimento efetivo (1920) × exclusões no M300 do e-Lalur × IRPJ/CSLL a pagar (N630/N670)',
       regra: 'O crédito presumido de ICMS é subvenção e não compõe a base de IRPJ/CSLL (pacífico até 2023, sem exigência de requisitos). Se o e-Lalur não registra a exclusão, o caixa imediato é o IRPJ/CSLL pagos nos exercícios com lucro; o excedente vira prejuízo fiscal compensável.' },
+    { id: 'FED-1067-1', area: 'cruzada', setor: '*', uf: '*', tipo: 'recuperacao', sev: 'media',
+      base: 'implementada', status: 'implementada', parte: null,
+      nome: 'Tema 1067/STF: PIS/COFINS sobre a própria base (condicionado)',
+      fundamento: 'STF RE 1.233.096 (Tema 1067) — repercussão geral reconhecida em 18/10/2019, pendente de julgamento; CF, art. 195, I, b',
+      le: 'Por período (M210/M610, linhas ad valorem): crédito = contribuições × a/(1+a), com a = contribuições ÷ base de cálculo do período',
+      regra: 'A tese exclui o PIS e a COFINS de suas próprias bases de cálculo (fim do cálculo por dentro), na lógica do Tema 69. A regra mede o valor em jogo período a período sobre as linhas ad valorem da EFD-Contribuições e ignora alíquotas específicas por unidade de medida (bebidas frias tributadas por litro não têm base ad valorem a expurgar). Marca como CONDICIONADO com prognóstico DESFAVORÁVEL: TRF-3, TRF-4 e STJ validam o cálculo por dentro e o precedente irmão do ISS (Tema 118) foi contra o contribuinte. O número serve à decisão sobre ação preventiva contra modulação, não como crédito executável.' },
     { id: 'FED-843-1', area: 'cruzada', setor: '*', uf: '*', tipo: 'recuperacao', sev: 'alta',
       base: 'implementada', status: 'implementada', parte: null,
       nome: 'Tema 843/STF: PIS/COFINS sobre o crédito presumido (condicionado)',
@@ -6600,6 +7719,14 @@ const UIClientes = (function () {
             <label>UF</label>
             <input id="cli-uf" type="text" maxlength="2" placeholder="MG" style="width:80px;text-transform:uppercase" />
           </div>
+          <div class="form-row">
+            <label>Setor</label>
+            <select id="cli-setor">
+              <option value="">(definir depois — roda todas as regras)</option>
+              ${((window.Conhecimento && Conhecimento.SETORES) || []).map(x =>
+                `<option value="${x.id}">${Utils.escapeHtml(x.nome)}</option>`).join('')}
+            </select>
+          </div>
         </div>
         <div style="margin-top:12px">
           <button class="btn btn-primary" id="cli-salvar">Cadastrar</button>
@@ -6634,8 +7761,14 @@ const UIClientes = (function () {
       const cnpj = container.querySelector('#cli-cnpj').value;
       const razao = container.querySelector('#cli-razao').value;
       const uf = container.querySelector('#cli-uf').value.toUpperCase();
+      const setor = (container.querySelector('#cli-setor') || {}).value || '';
       try {
-        await Clientes.salvar({ cnpj, razao_social: razao, uf });
+        // setor só entra quando foi escolhido: recadastrar um CNPJ para corrigir
+        // a razão social sem mexer no select NÃO pode zerar o setor já definido
+        // (limpar de propósito é pelo botão "Trocar setor" da aba Auditorias).
+        const dados = { cnpj, razao_social: razao, uf };
+        if (setor) dados.setor = setor;
+        await Clientes.salvar(dados);
         await Clientes.definirAtivo(cnpj);
 
         // cria a pasta da empresa no disco JÁ no cadastro (se houver pasta de trabalho)
@@ -7003,8 +8136,24 @@ const UIUpload = (function () {
       await DB.limparUnificadasPeriodo(cnpj, ctx.periodo);
       for (const a of anteriores) await DB.deleteOne('rev_arquivos', a.id_arquivo);
     }
+    // ---- cadeia de retificação (o furo que já causou diagnóstico errado no
+    // SintegraView: pasta incompleta, sem a retificadora intermediária) ----
+    const cadeia = lerCadeiaSped(conteudo, resultado.origem);
+    if (cadeia.retificadora && anteriores.length === 0) {
+      const msg = `${item.nome} é RETIFICADORA e não há nenhuma versão anterior de ${ctx.periodo} importada. `
+        + `Normal quando só a vigente foi baixada; mas se a pasta veio de um acumulado, pode estar faltando arquivo.`
+        + (cadeia.num_rec_anterior ? ` Recibo anterior declarado: ${cadeia.num_rec_anterior}.` : '');
+      await DB.registrarLog(cnpj, 'aviso', 'Retificadora sem original na base', msg);
+      item.detalhe = ((item.detalhe ? item.detalhe + ' · ' : '') + 'retificadora sem original na base');
+    }
+    if (cadeia.retificadora && anteriores.some(a => a.retificadora || (Number(a.cod_fin) || 0) > 0)) {
+      await DB.registrarLog(cnpj, 'aviso', 'Retificadora substituiu outra retificadora',
+        `${item.nome} (${ctx.periodo}): o leiaute não traz data de transmissão, então a ordem é a de importação. `
+        + `Confirme que esta é de fato a versão vigente.`);
+      item.detalhe = ((item.detalhe ? item.detalhe + ' · ' : '') + 'substituiu outra retificadora — confira qual é a vigente');
+    }
     await ParserSped.salvarStaging(resultado.registros);
-    await DB.put('rev_arquivos', { id_arquivo, cnpj_empresa: cnpj, periodo: ctx.periodo, nome: item.nome, tipo: item.tipo, origem: resultado.origem, cod_fin: codFinNovo, tamanho: item.tamanho, sha256: sha, qtd_linhas: resultado.totais.linhas, qtd_registros: resultado.totais.registros, importado_em: new Date().toISOString(), parseado: true });
+    await DB.put('rev_arquivos', { id_arquivo, cnpj_empresa: cnpj, periodo: ctx.periodo, nome: item.nome, tipo: item.tipo, origem: resultado.origem, cod_fin: codFinNovo, retificadora: cadeia.retificadora, num_rec_anterior: cadeia.num_rec_anterior || null, tamanho: item.tamanho, sha256: sha, qtd_linhas: resultado.totais.linhas, qtd_registros: resultado.totais.registros, importado_em: new Date().toISOString(), parseado: true });
     item.status = 'normalizando';
     atualizarFila(container);
     if (ehContabil) await NormalizadorContabil.normalizar(cnpj, ctx.periodo, resultado.origem);
@@ -7503,6 +8652,37 @@ const UIUpload = (function () {
     if (!l0000) return '0';
     const p = l0000.split('|');
     return (p[3] || '0').trim() || '0';
+  }
+
+  /**
+   * Cadeia de retificação declarada DENTRO do próprio arquivo (registro 0000).
+   * Porte da seção 2.2 da documentação do SintegraView, adaptado ao que cada
+   * leiaute realmente carrega:
+   *   EFD-Contribuições  0000: TIPO_ESCRIT (p3: 0=original, 1=retificadora) +
+   *                            NUM_REC_ANTERIOR (p5) — o recibo da versão anterior
+   *   ECF                0000: RETIFICADORA (p5: S/N) + NUM_REC_ANTERIOR (p6)
+   *   EFD ICMS/IPI       0000: só COD_FIN (p3) — o leiaute NÃO declara o recibo
+   *                            anterior, então ali a cadeia não é verificável
+   * O recibo do ORIGINAL não existe dentro de arquivo nenhum (é atribuído na
+   * transmissão), então o elo verificável é: retificadora presente SEM nenhuma
+   * versão anterior importada = pode faltar arquivo na pasta.
+   */
+  function lerCadeiaSped(conteudo, origem) {
+    const out = { retificadora: false, num_rec_anterior: '' };
+    if (!conteudo) return out;
+    const l0000 = conteudo.split(/\r?\n/).find(l => l.startsWith('|0000|'));
+    if (!l0000) return out;
+    const p = l0000.split('|').map(x => (x || '').trim());
+    if (origem === 'efd_contrib') {
+      out.retificadora = p[3] === '1';
+      out.num_rec_anterior = p[5] || '';
+    } else if (origem === 'ecf') {
+      out.retificadora = (p[5] || '').toUpperCase() === 'S';
+      out.num_rec_anterior = p[6] || '';
+    } else if (origem === 'efd_fiscal') {
+      out.retificadora = (Number(p[3]) || 0) > 0;
+    }
+    return out;
   }
 
   function extrairMetaSped(conteudo, tipo) {
@@ -8162,17 +9342,63 @@ window.Selic = (function () {
   }
   function tabela() { return Object.assign({}, OFICIAL, overrides()); }
   function taxa(per) { const t = tabela()[per]; return (t == null || t === '') ? null : Number(t); }
+  // espelho durável dos overrides no rev_config: limpar os dados do navegador
+  // não apaga mais os ajustes manuais da tabela (o localStorage segue de cache)
+  function _espelharConfig(ov) {
+    try {
+      if (window.DB && DB.put) DB.put('rev_config', { id_config: 'selic_overrides', dados: ov || {} }).catch(() => {});
+    } catch (e) {}
+  }
   function salvar(per, tx) {
     if (!/^\d{4}-\d{2}$/.test(per || '')) return false;
     const ov = overrides();
     if (tx == null || tx === '') delete ov[per]; else ov[per] = Number(tx);
-    try { localStorage.setItem(KEY, JSON.stringify(ov)); return true; } catch (e) { return false; }
+    try { localStorage.setItem(KEY, JSON.stringify(ov)); _espelharConfig(ov); return true; } catch (e) { return false; }
   }
-  function restaurarPadrao() { try { localStorage.removeItem(KEY); } catch (e) {} }
+  function restaurarPadrao() {
+    try { localStorage.removeItem(KEY); } catch (e) {}
+    _espelharConfig({});
+  }
+  /** Boot: recupera do rev_config o que o localStorage não tiver (máquina nova / dados limpos). */
+  async function sincronizarConfig() {
+    try {
+      const cfg = await DB.get('rev_config', 'selic_overrides');
+      if (!cfg || !cfg.dados) return false;
+      const ov = overrides();
+      let mudou = false;
+      for (const [per, tx] of Object.entries(cfg.dados)) {
+        if (!(per in ov)) { ov[per] = tx; mudou = true; }
+      }
+      if (mudou) localStorage.setItem(KEY, JSON.stringify(ov));
+      return mudou;
+    } catch (e) { return false; }
+  }
   function ehOverride(per) { return Object.prototype.hasOwnProperty.call(overrides(), per); }
   function ehOficial(per) { return Object.prototype.hasOwnProperty.call(OFICIAL, per); }
 
   const mesAtual = () => new Date().toISOString().slice(0, 7);
+
+  /** Última competência presente na tabela (oficial + overrides). */
+  function ultimaCompetencia() {
+    const chaves = Object.keys(tabela()).filter(k => /^\d{4}-\d{2}$/.test(k)).sort();
+    return chaves[chaves.length - 1] || null;
+  }
+
+  /**
+   * A tabela alcança o mês necessário para corrigir até hoje? A regra RFB soma
+   * as taxas até o mês ANTERIOR ao atual (+1% no atual), então a tabela precisa
+   * chegar em (mês atual - 1). Se não chega, a correção sai SUBESTIMADA em
+   * silêncio — este diagnóstico existe para a tela e o laudo avisarem.
+   */
+  function diagnostico() {
+    const ult = ultimaCompetencia();
+    const atual = mesAtual();
+    if (!ult) return { ok: false, ultima: null, defasagemMeses: 99, mesAtual: atual };
+    const idx = (p) => { const [a, m] = p.split('-').map(Number); return a * 12 + m; };
+    const necessario = idx(atual) - 1;              // mês anterior ao atual
+    const defasagem = Math.max(0, necessario - idx(ult));
+    return { ok: defasagem === 0, ultima: ult, defasagemMeses: defasagem, mesAtual: atual };
+  }
   function proxMes(per) {
     let [a, m] = per.split('-').map(Number); m++; if (m > 12) { m = 1; a++; }
     return `${a}-${String(m).padStart(2, '0')}`;
@@ -8224,7 +9450,8 @@ window.Selic = (function () {
     return out;
   }
 
-  return { tabela, taxa, salvar, restaurarPadrao, ehOverride, ehOficial, mesAtual, proxMes, acumuladoPct, corrigir, corrigirAchado, faltantesAte, _OFICIAL: OFICIAL };
+  return { tabela, taxa, salvar, restaurarPadrao, ehOverride, ehOficial, mesAtual, proxMes, acumuladoPct, corrigir, corrigirAchado, faltantesAte, _OFICIAL: OFICIAL, sincronizarConfig, ultimaCompetencia, diagnostico,
+  };
 })();
 
 
@@ -8331,7 +9558,7 @@ ${ws('Tabela Selic', cab3, linhas3)}
 // em fontes públicas (STF/STJ/TRFs/COSIT). Alimenta o capítulo "Radar" do laudo
 // e os badges de condicionado. ATUALIZAR a cada ciclo de pesquisa.
 window.TesesRadar = (function () {
-  const VERIFICADO = '10/07/2026';
+  const VERIFICADO = '16/07/2026';
   const LISTA = [
     { id: 'TEMA-843', nome: 'Crédito presumido de ICMS fora da base de PIS/COFINS (Tema 843/STF)',
       status: 'Julgamento presencial retirado de pauta em 20/02/2026 com placar 5×5, restando apenas o voto do Min. Luiz Fux (que divergiu no plenário virtual). Suspensão nacional vigente; ADC 98 (AGU) em tramitação. Liminares seguem sendo concedidas (ex.: TRF-3, AI 5022223-94.2024, jul/2026).',
@@ -8350,8 +9577,8 @@ window.TesesRadar = (function () {
       recomendacao: 'Protocolar imediatamente os PER de saldo credor (IPI) — o protocolo dispara o relógio dos 360 dias a favor do contribuinte.',
       urgencia: 'Alta', computa: null },
     { id: 'TEMA-1067', nome: 'PIS/COFINS sobre a própria base (Tema 1067/STF)',
-      status: 'Pendente de julgamento no STF, sem data.',
-      recomendacao: 'Tese de prateleira (~0,7% da receita); avaliar cumulação no mesmo MS do Tema 843.',
+      status: 'Pendente de julgamento no STF desde a repercussão geral (18/10/2019), sem pauta; relatoria Min. Cármen Lúcia. Jurisprudência intermediária contrária: TRF-3, TRF-4 e STJ validam o cálculo por dentro, e o precedente irmão do ISS (Tema 118) foi julgado desfavorável ao contribuinte.',
+      recomendacao: 'Valor em jogo quantificado automaticamente pela regra FED-1067-1 (M210/M610, linhas ad valorem). Prognóstico desfavorável: faz sentido apenas como ação preventiva de baixo custo contra modulação, idealmente cumulada no mesmo MS do Tema 843.',
       urgencia: 'Média', computa: null },
     { id: 'COLETIVAS', nome: 'Via associativa (MS coletivo — Súmulas 629/630 do STF)',
       status: 'Não localizado MS coletivo setorial sobre os Temas 843/1416; Abracerva litiga coletivamente (vitória no TRF-3 em abr/2026 em matéria regulatória); ADI 7633 (CNI) ataca a Lei 14.789.',
@@ -8448,7 +9675,19 @@ window.Laudo = (function () {
       <td>${NAT_ROT[t.nat] || t.nat}</td>
       <td class="num" style="color:${t.nat === 'credito' ? '#1a7f4b' : '#c0392b'};font-weight:700">${fmt(t.v)}</td>
       <td class="num" style="color:${t.nat === 'credito' ? '#1a7f4b' : '#c0392b'}">${t.vc > t.v + 0.005 ? fmt(t.vc) : '—'}</td></tr>`).join('');
-    return `<h2 id="sec-2">2. Quadro-síntese</h2>
+    // aviso de defasagem da tabela Selic: num laudo, correção subestimada em
+    // silêncio é pior que nenhuma correção — o leitor precisa saber até onde vale
+    let avisoSelic = '';
+    try {
+      const d = window.Selic && Selic.diagnostico();
+      if (d && !d.ok) {
+        avisoSelic = `<p style="background:#fff7e6;border-left:4px solid #b26a00;padding:8px 12px;font-size:12px">`
+          + `⚠️ <strong>Tabela Selic atualizada até ${d.ultima || '?'}.</strong> A correção usa a regra RFB `
+          + `(taxas até o mês anterior ao atual), então os valores corrigidos estão SUBESTIMADOS em `
+          + `${d.defasagemMeses} mês(es) de Selic. Atualize a tabela no editor (aba Auditorias) antes de entregar.</p>`;
+      }
+    } catch (e) {}
+    return `<h2 id="sec-2">2. Quadro-síntese</h2>${avisoSelic}
       <table><thead><tr><th>Tese</th><th>Natureza</th><th style="text-align:right">Valor original</th><th style="text-align:right">💹 Corrigido (Selic)</th></tr></thead><tbody>${linhas}</tbody></table>
       <p style="font-size:11px;color:#5a6a78">Correção pela Selic acumulada até o mês de emissão (regra RFB: soma das taxas mensais do mês seguinte à competência + 1% no mês atual). <strong>Créditos estaduais não recebem correção</strong>: o aproveitamento escritural de ICMS é pelo valor nominal (RICMS/MG, art. 67, § 2º do Dec. 43.080/2002, regra mantida no Dec. 48.589/2023; STF exige lei estadual autorizativa, inexistente em MG). Consolidados/sem competência mensal também não. A memória de cálculo completa está disponível em Excel na aba Auditorias do programa.</p>`;
   }
@@ -8862,8 +10101,22 @@ const UIBackup = (function () {
     const suportado = Armazenamento.suportado();
     // estado REAL da pasta: handle salvo + permissão ativa (não apenas handle em memória)
     let temPasta = false, conectada = false, nomePasta = null;
+    let estPasta = { nuvem: {}, local: {}, modoNuvem: false };
     if (suportado) {
-      try { const ep = await Armazenamento.estadoPasta(); temPasta = ep.temPasta; conectada = ep.conectada; nomePasta = ep.nome; } catch (e) {}
+      try {
+        const ep = await Armazenamento.estadoPasta();
+        temPasta = ep.temPasta; conectada = ep.conectada; nomePasta = ep.nome; estPasta = ep;
+      } catch (e) {}
+    }
+    // modo nuvem: nome do dispositivo, estado do cliente ativo e pendências gerais
+    const modoNuvem = !!estPasta.modoNuvem;
+    let nomeDispositivo = null, estNuvem = null, pendentes = [];
+    if (suportado) {
+      try { nomeDispositivo = await Armazenamento.dispositivo(); } catch (e) {}
+      if (modoNuvem) {
+        if (ativo) { try { estNuvem = await Armazenamento.estadoNuvemCliente(ativo.cnpj); } catch (e) {} }
+        try { pendentes = await Armazenamento.clientesPendentes(); } catch (e) {}
+      }
     }
     const clientes = await DB.getAll('rev_clientes');
     const est = await DB.estimarArmazenamento();
@@ -8958,6 +10211,84 @@ const UIBackup = (function () {
           </div>
         </details>
       </div>
+
+      ${suportado ? `
+      <div class="card" style="border-left:4px solid ${modoNuvem ? 'var(--ok,#1b8a3a)' : 'var(--borda,#ddd)'}">
+        <h3>☁️ Modo nuvem (copiar para trabalhar, devolver no fim)</h3>
+        <p style="margin:.2rem 0 .7rem;color:var(--texto-fraco,#667);font-size:.9rem">
+          Igual ao SintegraView. O app trabalha numa <strong>cópia local</strong> e a pasta do
+          OneDrive vira só a origem: ao abrir um cliente, baixa da nuvem <em>só o que mudou</em>;
+          ao terminar, devolve <em>só o que você mexeu</em>. Sem isso, cada leitura pode disparar
+          download do OneDrive e duas máquinas geram cópia conflitada.
+        </p>
+
+        <table class="tabela" style="margin-bottom:.8rem">
+          <tbody>
+            <tr>
+              <td style="width:10rem"><strong>Pasta na nuvem</strong><br><span style="font-size:.8rem;color:var(--texto-fraco,#667)">origem durável</span></td>
+              <td>${estPasta.nuvem && estPasta.nuvem.temPasta
+                    ? `<span class="mono">${Utils.escapeHtml(estPasta.nuvem.nome || '')}</span> · ${estPasta.nuvem.conectada ? '<span style="color:var(--ok,#1b8a3a)">conectada</span>' : '<span style="color:var(--aviso,#c47f00)">desconectada</span>'}`
+                    : '<span style="color:var(--texto-fraco,#667)">não definida</span>'}</td>
+            </tr>
+            <tr>
+              <td><strong>Cópia local</strong><br><span style="font-size:.8rem;color:var(--texto-fraco,#667)">onde o app trabalha</span></td>
+              <td>${estPasta.local && estPasta.local.temPasta
+                    ? `<span class="mono">${Utils.escapeHtml(estPasta.local.nome || '')}</span> · ${estPasta.local.conectada ? '<span style="color:var(--ok,#1b8a3a)">conectada</span>' : '<span style="color:var(--aviso,#c47f00)">desconectada</span>'}`
+                    : '<span style="color:var(--texto-fraco,#667)">não definida — modo nuvem desligado</span>'}</td>
+            </tr>
+            <tr>
+              <td><strong>Este dispositivo</strong><br><span style="font-size:.8rem;color:var(--texto-fraco,#667)">aparece no marcador</span></td>
+              <td><input type="text" id="bk-nome-disp" value="${Utils.escapeHtml(nomeDispositivo || '')}" placeholder="ex.: MacBook do Thiago" style="padding:.3rem .5rem;border:1px solid ${modoNuvem && !nomeDispositivo ? 'var(--aviso,#c47f00)' : 'var(--borda,#ddd)'};border-radius:6px;width:16rem">
+                  <button class="btn btn-mini" id="bk-salvar-disp">Salvar</button>
+                  <span id="bk-disp-status" style="font-size:.84rem;margin-left:.4rem"></span>
+                  ${modoNuvem && !nomeDispositivo ? `<div style="font-size:.82rem;color:var(--aviso,#c47f00);margin-top:.3rem">
+                    Sem nome, o marcador na nuvem vai dizer só "dispositivo sem nome" e a outra máquina não saberá quem está com o cliente aberto.</div>` : ''}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div style="background:var(--bg-warn,#fff7e6);border-radius:6px;padding:.6rem .8rem;margin-bottom:.8rem;font-size:.86rem">
+          <strong>A cópia local precisa ficar FORA do OneDrive.</strong> O padrão da casa é
+          <span class="mono">~/projetos/Banco de dados/BD revisor local</span>, espelhando a origem
+          <span class="mono">projetos/Banco de dados/BD revisor</span> no OneDrive.
+          Se apontar para dentro do OneDrive, o app continua funcionando mas você não ganha nada:
+          os dois lados sincronizam igual. O app recusa a mesma pasta e pastas aninhadas, mas
+          <em>não tem como detectar</em> uma pasta irmã dentro do OneDrive.
+        </div>
+
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+          <button class="btn btn-primario" id="bk-def-local">${modoNuvem ? 'Trocar a pasta local' : 'Definir pasta local de trabalho'}</button>
+          ${modoNuvem ? `
+            <button class="btn" id="bk-sincronizar" ${ativo ? '' : 'disabled'}>Sincronizar cliente ativo</button>
+            <button class="btn" id="bk-devolver" ${ativo ? '' : 'disabled'}>Devolver para a nuvem</button>
+            <button class="btn" id="bk-devolver-tudo" ${pendentes.length ? '' : 'disabled'}>Devolver tudo (${pendentes.length})</button>
+            <button class="btn" id="bk-desligar-nuvem">Desligar modo nuvem</button>` : ''}
+        </div>
+        <div id="bk-status-nuvem" style="margin-top:.7rem;font-size:.9rem"></div>
+        <div id="bk-prog-nuvem" style="margin-top:.4rem"></div>
+
+        ${modoNuvem && estNuvem ? `
+          <div style="margin-top:.9rem;padding-top:.8rem;border-top:1px solid var(--borda,#eee);font-size:.9rem">
+            <strong>${Utils.escapeHtml(ativo ? (ativo.razao_social || ativo.cnpj) : '')}</strong> ·
+            ${estNuvem.semCopiaLocal
+              ? '<span style="color:var(--aviso,#c47f00)">ainda sem cópia local. Clique em <em>Sincronizar cliente ativo</em> para baixar da nuvem.</span>'
+              : `${estNuvem.arquivos_locais || 0} arquivo(s) na cópia local · `
+                + (estNuvem.pendentes
+                    ? `<span style="color:var(--aviso,#c47f00)"><strong>${estNuvem.pendentes} alteração(ões) ainda não devolvida(s)</strong></span>`
+                    : '<span style="color:var(--ok,#1b8a3a)">tudo devolvido</span>')
+                + (estNuvem.copiado_em ? ` · baixado em ${Utils.escapeHtml(Nuvem.fmtLocal(estNuvem.copiado_em))}` : '')
+                + (estNuvem.devolvido_em ? ` · devolvido em ${Utils.escapeHtml(Nuvem.fmtLocal(estNuvem.devolvido_em))}` : '')}
+            ${estNuvem.alerta ? `<div style="margin-top:.6rem;padding:.6rem .8rem;background:#fff2f0;border-left:4px solid var(--erro,#b3261e);border-radius:6px">
+                ⚠️ ${Utils.escapeHtml(estNuvem.alerta)}
+                <button class="btn btn-mini" id="bk-liberar-marcador" style="margin-left:.5rem">Liberar mesmo assim</button>
+              </div>` : ''}
+          </div>` : ''}
+
+        ${modoNuvem && pendentes.length ? `
+          <div style="margin-top:.8rem;font-size:.88rem;color:var(--texto-fraco,#667)">
+            Pendentes de devolução: ${pendentes.map(p => `<span class="mono">${Utils.escapeHtml(p.pasta)}</span> (${p.pendentes})`).join(', ')}
+          </div>` : ''}
+      </div>` : ''}
 
       ${conectada ? `
       <div class="card">
@@ -9114,6 +10445,116 @@ const UIBackup = (function () {
         await atualizarSeletorGlobal();
         render(container);
       } catch (e) { msg(statusPastaEl, 'Erro: ' + e.message, 'erro'); }
+    };
+
+    // ==================================================================
+    // MODO NUVEM
+    // ==================================================================
+    const statusNuvemEl = container.querySelector('#bk-status-nuvem');
+    const progNuvemEl = container.querySelector('#bk-prog-nuvem');
+
+    // ---- nome do dispositivo ----
+    const btnDisp = container.querySelector('#bk-salvar-disp');
+    if (btnDisp) btnDisp.onclick = async () => {
+      const v = container.querySelector('#bk-nome-disp').value;
+      const el = container.querySelector('#bk-disp-status');
+      const ok = await Armazenamento.definirDispositivo(v);
+      if (el) { el.textContent = ok ? 'salvo' : 'informe um nome'; el.style.color = ok ? 'var(--ok,#1b8a3a)' : 'var(--erro,#b3261e)'; }
+    };
+
+    // ---- definir a pasta local de trabalho ----
+    const btnDefLocal = container.querySelector('#bk-def-local');
+    if (btnDefLocal) btnDefLocal.onclick = async () => {
+      try {
+        if (!Armazenamento.temPastaNuvem()) {
+          msg(statusNuvemEl, 'Defina primeiro a pasta na nuvem (card acima). Ela é a origem do banco.', 'erro');
+          return;
+        }
+        await Armazenamento.definirPastaLocal();
+        msg(statusNuvemEl, 'Cópia local definida. Modo nuvem ligado. Sincronize o cliente ativo para baixar o banco.', 'ok');
+        render(container);
+      } catch (e) {
+        if (e.name === 'AbortError') return;   // usuário cancelou o seletor
+        msg(statusNuvemEl, e.message, 'erro');
+      }
+    };
+
+    // ---- desligar o modo nuvem ----
+    const btnDesligar = container.querySelector('#bk-desligar-nuvem');
+    if (btnDesligar) btnDesligar.onclick = async () => {
+      const pend = await Armazenamento.clientesPendentes().catch(() => []);
+      if (pend.length && !confirm(
+        `Há ${pend.length} cliente(s) com alteração ainda NÃO devolvida para a nuvem.\n\n`
+        + `Desligar agora deixa esse trabalho só na cópia local. O recomendado é devolver antes.\n\n`
+        + `Desligar mesmo assim?`)) return;
+      await Armazenamento.removerPastaLocal();
+      msg(statusNuvemEl, 'Modo nuvem desligado. O app voltou a gravar direto na pasta da nuvem.', 'aviso');
+      render(container);
+    };
+
+    // ---- sincronizar (entrar no cliente: baixa o que mudou) ----
+    const btnSinc = container.querySelector('#bk-sincronizar');
+    if (btnSinc) btnSinc.onclick = async () => {
+      if (!ativo) return;
+      try {
+        msg(statusNuvemEl, 'Conferindo a nuvem…');
+        const r = await Armazenamento.entrarCliente(ativo.cnpj, { forcar: true },
+          (p, t) => barra(progNuvemEl, p, t));
+        if (!r.ok) { msg(statusNuvemEl, `Não deu para sincronizar: ${r.motivo}`, 'erro'); return; }
+        const partes = [];
+        if (r.copiados) partes.push(`${r.copiados} arquivo(s) baixados (${(r.bytes / 1048576).toFixed(1)} MB)`);
+        else partes.push('nada mudou na nuvem');
+        if (r.inalterados) partes.push(`${r.inalterados} já estavam em dia`);
+        if (r.pendentes) partes.push(`${r.pendentes} pendente(s) de devolução`);
+        msg(statusNuvemEl, partes.join(' · ') + '.', r.avisos && r.avisos.length ? 'aviso' : 'ok');
+        if (r.avisos && r.avisos.length) alert('Avisos da sincronização:\n\n- ' + r.avisos.join('\n\n- '));
+        render(container);
+      } catch (e) { msg(statusNuvemEl, 'Erro: ' + e.message, 'erro'); }
+    };
+
+    // ---- devolver o cliente ativo ----
+    const btnDev = container.querySelector('#bk-devolver');
+    if (btnDev) btnDev.onclick = async () => {
+      if (!ativo) return;
+      try {
+        msg(statusNuvemEl, 'Devolvendo para a nuvem…');
+        // salva o estado do navegador na cópia local ANTES de devolver,
+        // senão o que ainda está só no IndexedDB não sobe.
+        await Armazenamento.salvarCliente(ativo.cnpj).catch(() => {});
+        const r = await Armazenamento.devolverCliente(ativo.cnpj, {},
+          (p, t) => barra(progNuvemEl, p, t));
+        if (!r.ok && r.motivo) { msg(statusNuvemEl, `Não deu para devolver: ${r.motivo}`, 'erro'); return; }
+        msg(statusNuvemEl, r.devolvidos
+          ? `${r.devolvidos} arquivo(s) devolvidos (${(r.bytes / 1048576).toFixed(1)} MB). Marcador liberado.`
+          : 'Nada a devolver: a sessão não alterou o banco.', r.avisos && r.avisos.length ? 'aviso' : 'ok');
+        if (r.avisos && r.avisos.length) alert('Avisos da devolução:\n\n- ' + r.avisos.join('\n\n- '));
+        render(container);
+      } catch (e) { msg(statusNuvemEl, 'Erro: ' + e.message, 'erro'); }
+    };
+
+    // ---- devolver tudo que está pendente ----
+    const btnDevTudo = container.querySelector('#bk-devolver-tudo');
+    if (btnDevTudo) btnDevTudo.onclick = async () => {
+      try {
+        const res = await Armazenamento.devolverTodosPendentes((p, t) => barra(progNuvemEl, p, t));
+        const n = res.reduce((s, r) => s + (r.devolvidos || 0), 0);
+        const falhas = res.filter(r => r.avisos && r.avisos.length);
+        msg(statusNuvemEl, `${n} arquivo(s) devolvidos em ${res.length} cliente(s).`
+          + (falhas.length ? ` ${falhas.length} com aviso.` : ''), falhas.length ? 'aviso' : 'ok');
+        render(container);
+      } catch (e) { msg(statusNuvemEl, 'Erro: ' + e.message, 'erro'); }
+    };
+
+    // ---- liberar marcador de outra máquina ----
+    const btnLib = container.querySelector('#bk-liberar-marcador');
+    if (btnLib) btnLib.onclick = async () => {
+      if (!ativo) return;
+      if (!confirm('Liberar o marcador diz ao app que ninguém mais está com este cliente aberto.\n\n'
+        + 'Só faça isso se tiver certeza de que a outra sessão terminou. Se as duas máquinas gravarem, '
+        + 'o OneDrive vai criar cópia conflitada.\n\nLiberar?')) return;
+      const ok = await Armazenamento.liberarMarcadorCliente(ativo.cnpj);
+      msg(statusNuvemEl, ok ? 'Marcador liberado.' : 'Não foi possível liberar o marcador.', ok ? 'ok' : 'erro');
+      render(container);
     };
 
     // ---- diagnóstico ----
@@ -9805,10 +11246,22 @@ const Auditorias = (function () {
     return 'baixa';
   }
 
+  // Contador de desempate do id_achado dentro de UMA rodada. O id era aleatório
+  // (Math.random), então mudava a cada execução e impedia: comparar duas rodadas,
+  // preservar a marcação de revisado/aceito do auditor, e responder "o que mudou
+  // desde a última auditoria". Agora o id é DETERMINÍSTICO: mesma regra + mesmo
+  // período + mesma referência + mesmo título produzem sempre o mesmo id, e o
+  // contador só desempata achados genuinamente idênticos na mesma rodada (a
+  // ordem de iteração das regras é estável, então o desempate também é).
+  let _seqIds = new Map();
+  function _zerarSeqIds() { _seqIds = new Map(); }
+
   function novoAchado(cnpj, idAud, tipo, dados) {
-    const seq = Math.random().toString(36).slice(2, 8);
+    const base = `${cnpj}|${tipo}|${dados.periodo || 'x'}|${dados.ref_chave || ''}|${dados.titulo || ''}`;
+    const n = (_seqIds.get(base) || 0) + 1;
+    _seqIds.set(base, n);
     return {
-      id_achado: U().shortHash(`${cnpj}|${tipo}|${dados.periodo || 'x'}|${dados.ref_chave || ''}|${seq}`),
+      id_achado: U().shortHash(base + '|' + n),
       cnpj_empresa: cnpj,
       id_auditoria: idAud,
       tipo,
@@ -10274,6 +11727,7 @@ const Auditorias = (function () {
       r1920, r1926, e110r, e210r, e520r,
       n620, n630, n660, n670, m300ecf,
       d100fis, d100ctb, c190fis,
+      m210c, m610c,
     ] = await Promise.all([
       g('rev_xml_itens'), g('rev_itens'), g('rev_documentos'),
       g('rev_retencoes'), g('rev_saldos_contabeis'), g('rev_apuracao_pis_cofins'),
@@ -10287,6 +11741,7 @@ const Auditorias = (function () {
       stg('ecf', 'M300'),
       stg('efd_fiscal', 'D100'), stg('efd_contrib', 'D100'),
       stg('efd_fiscal', 'C190'),
+      stg('efd_contrib', 'M210'), stg('efd_contrib', 'M610'),
     ]);
 
     // índice de produtos por cod_item (pega o tipo_item / ncm / descrição do 0200).
@@ -10306,19 +11761,49 @@ const Auditorias = (function () {
       ecf: { n620, n630, n660, n670, m300: m300ecf },
       d100: { fis: d100fis, ctb: d100ctb },
       c190: c190fis,
+      contrib: { m210: m210c, m610: m610c },
     };
   }
 
   /**
-   * Remove os achados de execuções anteriores deste cliente (evita duplicar).
+   * Anos que a rodada REALMENTE conseguiu enxergar, a partir dos períodos
+   * presentes no contexto carregado.
+   *
+   * Isto existe porque o banco operacional pode ter só uma parte do histórico:
+   * no modo ano-a-ano (o recomendado para volume) o navegador segura um ano por
+   * vez. Antes, a rodada apagava os achados do cliente INTEIRO e regravava só o
+   * que o ano carregado produzia, então auditar 2023 depois de 2022 fazia os
+   * achados de 2022 sumirem, com o total na tela menor que o real e nenhuma
+   * explicação. Agora a rodada declara seu escopo e só mexe dentro dele.
    */
-  async function limparAchadosAnteriores(cnpj) {
+  function anosDoContexto(ctx) {
+    const anos = new Set();
+    const colher = (arr) => { for (const r of (arr || [])) { const a = anoDe(r && r.periodo); if (a) anos.add(a); } };
+    colher(ctx.itens); colher(ctx.xmlItens); colher(ctx.documentos);
+    colher(ctx.retencoes); colher(ctx.saldos); colher(ctx.apurPisCofins);
+    colher(ctx.apurIcms); colher(ctx.estoque); colher(ctx.ativo); colher(ctx.empresas);
+    return [...anos].sort();
+  }
+
+  /**
+   * Remove os achados de execuções anteriores DENTRO DO ESCOPO desta rodada.
+   * Achados de anos que esta rodada nem enxergou ficam onde estão: eles vieram
+   * de uma rodada que tinha aquele dado carregado e continuam válidos.
+   * Achados sem ano (consolidados) são sempre recalculados, então saem.
+   */
+  async function limparAchadosAnteriores(cnpj, anosEscopo) {
     const DB = _DB();
     const antigos = await DB.getByIndex('rev_achados', 'cnpj_empresa', cnpj).catch(() => []);
+    const escopo = new Set(anosEscopo || []);
+    let removidos = 0, preservados = 0;
     for (const a of antigos) {
+      const ano = anoDe(a.periodo);
+      const dentro = !ano || escopo.size === 0 || escopo.has(ano);
+      if (!dentro) { preservados++; continue; }
       await DB.deleteOne('rev_achados', a.id_achado).catch(() => {});
+      removidos++;
     }
-    return antigos.length;
+    return { removidos, preservados };
   }
 
   /**
@@ -10337,8 +11822,24 @@ const Auditorias = (function () {
     prog(5, 'Carregando dados do cliente…');
     const ctx = await carregarContexto(cnpj);
 
-    prog(15, 'Limpando achados anteriores…');
-    await limparAchadosAnteriores(cnpj);
+    // escopo REAL desta rodada: os anos que o banco carregado contém
+    const anosEscopo = anosDoContexto(ctx);
+
+    // ids determinísticos por rodada + marcação do auditor da rodada anterior.
+    // Com o id estável, um achado remarcado pela regra é O MESMO achado de
+    // antes, então a revisão (status_revisao/nota_revisao) sobrevive à re-execução.
+    _zerarSeqIds();
+    const _statusAntigo = new Map();
+    try {
+      for (const a of await DB.getByIndex('rev_achados', 'cnpj_empresa', cnpj)) {
+        if (a && a.status_revisao) _statusAntigo.set(a.id_achado, {
+          status_revisao: a.status_revisao, nota_revisao: a.nota_revisao || '',
+          revisado_em: a.revisado_em || null });
+      }
+    } catch (e) {}
+
+    prog(15, `Limpando achados anteriores${anosEscopo.length ? ' de ' + anosEscopo.join(', ') : ''}…`);
+    const limpeza = await limparAchadosAnteriores(cnpj, anosEscopo);
 
     const achados = [];
     const resumoRegras = [];
@@ -10353,7 +11854,10 @@ const Auditorias = (function () {
       prog(pct, `Rodando ${id} — ${meta ? meta.nome : id}…`);
       try {
         const r = await fn(ctx, idAud, API);
-        for (const a of r.achados) a._regra = id;   // associa o achado à sua regra (para o detalhe na UI)
+        for (const a of r.achados) {
+          a._regra = id;              // associa o achado à sua regra (para o detalhe na UI)
+          a._escopo = anosEscopo;     // com que anos carregados este achado foi produzido
+        }
         achados.push(...r.achados);
         resumoRegras.push({ id, nome: meta ? meta.nome : id, tipo: meta ? meta.tipo : id, ...r.resumo });
       } catch (e) {
@@ -10361,6 +11865,19 @@ const Auditorias = (function () {
         await DB.registrarLog(cnpj, 'erro', `Auditoria ${id} falhou`, e.message);
       }
       pct += passo;
+      // solta o event loop entre as regras: com 60+ regras síncronas em
+      // sequência, o Chrome congelava e a barra de progresso nem pintava.
+      // (Mesmo truque do dumpParaPartes; a migração para Web Worker fica
+      // como evolução — o motor já é sem DOM, então o caminho está aberto.)
+      await new Promise(r => setTimeout(r, 0));
+    }
+
+    // reaplica a marcação do auditor nos achados que continuam existindo
+    if (_statusAntigo.size) {
+      for (const a of achados) {
+        const st = _statusAntigo.get(a.id_achado);
+        if (st) Object.assign(a, st);
+      }
     }
 
     prog(92, 'Gravando achados…');
@@ -10391,19 +11908,22 @@ const Auditorias = (function () {
     const registro = {
       id_auditoria: idAud,
       cnpj_empresa: cnpj,
-      periodo: '(todos)',
+      periodo: anosEscopo.length ? anosEscopo.join(', ') : '(sem dados)',
       executada_em: new Date().toISOString(),
       regras: idsRegras,
       n_achados: achados.length,
       resumo,
       regras_detalhe: resumoRegras,
+      anos_avaliados: anosEscopo,
+      achados_preservados: limpeza.preservados,
     };
     await DB.put('rev_auditorias', registro).catch(() => {});
     await DB.registrarLog(cnpj, 'info', 'Auditorias cruzadas executadas',
       `${achados.length} achado(s); crédito estimado ${U().fmtBRL(valorCredito)}`);
 
     prog(100, 'Concluído.');
-    return { id_auditoria: idAud, achados, porTipo, resumo, regras: resumoRegras };
+    return { id_auditoria: idAud, achados, porTipo, resumo, regras: resumoRegras,
+      anos_avaliados: anosEscopo, achados_preservados: limpeza.preservados };
   }
 
   /** Lê os achados persistidos de um cliente (mais graves primeiro). */
@@ -10422,6 +11942,42 @@ const Auditorias = (function () {
     const regs = await DB.getByIndexCnpjs('rev_auditorias', cnpj).catch(() => []);
     regs.sort((a, b) => (b.executada_em || '').localeCompare(a.executada_em || ''));
     return regs[0] || null;
+  }
+
+  // ------------------------------------------------------------------
+  // PERFIL DO CLIENTE × REGRA — decide o que RODA POR PADRÃO.
+  // A marcação setor/uf de cada regra já existia no catálogo do
+  // conhecimento.js desde sempre; o motor é que a ignorava. Regras de
+  // cervejaria/MG rodavam para qualquer cliente novo, poluindo o laudo.
+  //
+  // Política conservadora, nesta ordem:
+  //   - cliente SEM setor definido  → tudo aplica (comportamento antigo,
+  //     nada muda até o auditor marcar o setor; a tela avisa)
+  //   - regra fora do catálogo      → aplica (na dúvida, roda; fica logado)
+  //   - setor '*'                   → aplica (genérica)
+  //   - setor/uf batem com o perfil → aplica; senão → fica DISPONÍVEL mas
+  //     desmarcada na tela (o auditor pode forçar; a decisão é dele)
+  // ------------------------------------------------------------------
+  function perfilRegra(idRegra, cliente) {
+    const setorCli = cliente && cliente.setor;
+    if (!setorCli) return { aplica: true, motivo: 'sem_setor' };
+    const CO = (typeof window !== 'undefined' ? window.Conhecimento : globalThis.Conhecimento);
+    const doc = CO && CO.AUDITORIAS ? CO.AUDITORIAS.find(a => a.id === idRegra) : null;
+    if (!doc) return { aplica: true, motivo: 'sem_catalogo' };
+    // hierarquia: 'industria' no catálogo casa com qualquer setor industrial
+    // (cervejaria e automotivo são indústrias; supermercado e 'outro' não).
+    // Sem essa camada, as regras de terceiros/IPI sumiriam do perfil da
+    // cervejaria — pego pelo teste de regressão antes de ir para produção.
+    const ehIndustria = (() => {
+      const cadSetor = CO && CO.SETORES ? CO.SETORES.find(x => x.id === setorCli) : null;
+      return !!(cadSetor && cadSetor.industria);
+    })();
+    const okSetor = doc.setor === '*' || doc.setor === setorCli
+      || (doc.setor === 'industria' && ehIndustria);
+    const ufCli = (cliente.uf || '').toUpperCase();
+    const okUf = doc.uf === '*' || !ufCli || doc.uf === ufCli;
+    if (okSetor && okUf) return { aplica: true, motivo: doc.setor === '*' ? 'generica' : 'perfil' };
+    return { aplica: false, motivo: okSetor ? 'uf' : 'setor', setor_regra: doc.setor, uf_regra: doc.uf };
   }
 
   // ------------------------------------------------------------------
@@ -10460,6 +12016,7 @@ const Auditorias = (function () {
     const porFilial = [];
     const achados = [];
     const regrasDet = [];
+    const anosGrupo = new Set();
     let i = 0;
     for (const c of lista) {
       const base = Math.floor((i / lista.length) * 100);
@@ -10468,7 +12025,8 @@ const Auditorias = (function () {
         regras: opts.regras,
         onProgress: (pct, msg) => prog(base + Math.floor(pct * fator), `[${c.slice(8, 12)}] ${msg || ''}`),
       });
-      porFilial.push({ cnpj: c, resumo: r.resumo });
+      porFilial.push({ cnpj: c, resumo: r.resumo, anos_avaliados: r.anos_avaliados });
+      for (const a of (r.anos_avaliados || [])) anosGrupo.add(a);
       achados.push(...r.achados);
       for (const rd of (r.regras || [])) regrasDet.push({ ...rd, cnpj_filial: c });
       i++;
@@ -10489,13 +12047,15 @@ const Auditorias = (function () {
       consolidado_de: lista,
     };
     prog(100, 'Concluído (grupo).');
-    return { achados, porTipo, resumo, regras: regrasDet, por_filial: porFilial };
+    return { achados, porTipo, resumo, regras: regrasDet, por_filial: porFilial,
+      anos_avaliados: [...anosGrupo].sort() };
   }
 
   return { REGRAS, registrar, executar, executarGrupo, listarAchados, ultimaExecucao,
-    ambitoRegra, ambitoAchado,
+    ambitoRegra, ambitoAchado, perfilRegra,
     // expostas para teste
-    auditarA1, auditarA2, auditarA3, auditarA4, auditarA5, carregarContexto };
+    auditarA1, auditarA2, auditarA3, auditarA4, auditarA5, carregarContexto,
+    anosDoContexto, limparAchadosAnteriores };
 })();
 
 if (typeof window !== 'undefined') window.Auditorias = Auditorias;
@@ -12145,6 +13705,54 @@ const UIAuditorias = (function () {
     ins_combustivel_caldeira: 'Combustível de caldeira',
   };
 
+  /**
+   * O que a auditoria vai realmente conseguir enxergar.
+   *
+   * A auditoria roda sobre o que está CARREGADO no navegador, não sobre o que
+   * existe no disco. No modo ano-a-ano o banco segura um ano por vez, então é
+   * perfeitamente possível rodar a auditoria "do cliente" vendo só 2023 e sair
+   * com um total muito menor que o real. Antes isso acontecia em silêncio.
+   * Aqui a tela compara os dois conjuntos e avisa antes de rodar.
+   */
+  async function escopoDaAuditoria(cnpjs) {
+    const anos = (ps) => [...new Set((ps || []).map(p => String(p).slice(0, 4)).filter(a => /^\d{4}$/.test(a)))].sort();
+    let carregados = [];
+    try { carregados = anos(await DB.periodosDosCnpjs(cnpjs)); } catch (e) {}
+    let noDisco = [];
+    try {
+      const uni = new Set();
+      for (const c of cnpjs) for (const a of await Armazenamento.listarAnosNaPasta(c)) uni.add(a);
+      noDisco = [...uni].sort();
+    } catch (e) {}
+    const faltando = noDisco.filter(a => !carregados.includes(a));
+    return { carregados, noDisco, faltando };
+  }
+
+  function bannerEscopo(escopo, ult) {
+    const { carregados, noDisco, faltando } = escopo;
+    if (!carregados.length && !noDisco.length) return '';
+    const lista = (a) => a.length ? `<span class="mono">${a.join(', ')}</span>` : '<em>nenhum</em>';
+    const anterior = (ult && ult.anos_avaliados && ult.anos_avaliados.length)
+      ? `<div style="margin-top:6px;font-size:12px;color:var(--texto-fraco)">Última rodada avaliou ${lista(ult.anos_avaliados)}`
+        + (ult.achados_preservados ? ` e preservou ${ult.achados_preservados} achado(s) de anos fora do escopo` : '')
+        + '.</div>'
+      : '';
+    if (!faltando.length) {
+      return `<div class="card" style="border-left:4px solid var(--ok,#1b8a3a);padding:12px 16px">
+        <strong>Escopo da auditoria:</strong> anos carregados ${lista(carregados)}
+        ${noDisco.length ? ` · no disco ${lista(noDisco)}` : ''} · <span style="color:var(--ok,#1b8a3a)">tudo o que está salvo está carregado</span>.
+        ${anterior}</div>`;
+    }
+    return `<div class="card" style="border-left:4px solid var(--aviso,#c47f00);background:var(--bg-warn,#fff7e6);padding:12px 16px">
+      <strong>⚠️ A auditoria vai enxergar só parte do histórico.</strong>
+      <div style="margin-top:6px">Carregado no navegador: ${lista(carregados)} · salvo no disco: ${lista(noDisco)}.
+      Os anos ${lista(faltando)} <strong>não serão avaliados</strong> nesta rodada, porque o dado deles não está no banco.</div>
+      <div style="margin-top:6px;font-size:13px">Os achados desses anos, se já existirem de rodadas anteriores, são
+      <strong>preservados</strong> (não somem mais). Para auditar tudo de uma vez, vá em
+      <strong>Backup / Pasta</strong> e carregue os anos que faltam, se couberem na cota.</div>
+      ${anterior}</div>`;
+  }
+
   async function render(container) {
     const ativo = Clientes.ativo();
 
@@ -12161,6 +13769,7 @@ const UIAuditorias = (function () {
     const cnpjsSel = await Clientes.cnpjsAtivos();
     const ehGrupo = cnpjsSel.length > 1;
     const ult = await Auditorias.ultimaExecucao(cnpjsSel).catch(() => null);
+    const escopo = await escopoDaAuditoria(cnpjsSel);
 
     container.innerHTML = `
       <div class="etapa-header">
@@ -12172,14 +13781,52 @@ const UIAuditorias = (function () {
         </p>
       </div>
 
+      ${bannerEscopo(escopo, ult)}
+
+      ${(() => {
+        // ---- perfil do cliente: separa o que roda por padrão do que fica disponível ----
+        const setores = (window.Conhecimento && Conhecimento.SETORES) || [];
+        const semSetor = !ativo.setor;
+        if (semSetor) {
+          const ops = setores.map(x => `<option value="${x.id}">${Utils.escapeHtml(x.nome)}</option>`).join('');
+          return `<div class="card" style="border-left:4px solid var(--aviso,#c47f00);background:var(--bg-warn,#fff7e6);padding:12px 16px">
+            <strong>⚙️ Defina o setor do cliente.</strong> Sem setor, TODAS as ${Auditorias.REGRAS.length} regras rodam
+            (comportamento antigo) — inclusive as de cervejaria/MG, que poluem o resultado de um cliente de outro ramo.
+            Com o setor marcado, só as regras do perfil rodam por padrão; as demais ficam disponíveis, desmarcadas.
+            <div style="margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+              <select id="aud-setor-sel"><option value="">— escolher o setor —</option>${ops}</select>
+              <button class="btn btn-small" id="aud-setor-salvar">Salvar setor (vale para o grupo)</button>
+              <span id="aud-setor-msg" style="font-size:12px"></span>
+            </div></div>`;
+        }
+        const nomeSetor = (setores.find(x => x.id === ativo.setor) || {}).nome || ativo.setor;
+        return `<div class="card" style="border-left:4px solid var(--ok,#1b8a3a);padding:10px 16px;font-size:13px">
+          ⚙️ Perfil: <strong>${Utils.escapeHtml(nomeSetor)}</strong>${ativo.uf ? ` · <strong>${Utils.escapeHtml(ativo.uf)}</strong>` : ''}
+          — as regras fora do perfil ficam desmarcadas (dá para forçar abaixo).
+          <button class="btn btn-small" id="aud-setor-trocar" style="margin-left:8px">Trocar setor</button></div>`;
+      })()}
+
       <div class="card">
         <h3 style="margin-top:0">Regras a executar</h3>
         <div id="aud-regras" class="aud-regras">
-          ${Auditorias.REGRAS.map(r => `
-            <label class="aud-regra">
-              <input type="checkbox" value="${r.id}" checked>
-              <span><strong>${r.id}</strong> · ${Utils.escapeHtml(r.nome)}</span>
-            </label>`).join('')}
+          ${(() => {
+            const aval = Auditorias.REGRAS.map(r => ({ r, p: Auditorias.perfilRegra(r.id, ativo) }));
+            const dentro = aval.filter(x => x.p.aplica);
+            const fora = aval.filter(x => !x.p.aplica);
+            const linha = (x, marcada) => `
+              <label class="aud-regra">
+                <input type="checkbox" value="${x.r.id}" ${marcada ? 'checked' : ''}>
+                <span><strong>${x.r.id}</strong> · ${Utils.escapeHtml(x.r.nome)}${x.p.motivo === 'sem_catalogo' ? ' <em style="color:var(--texto-fraco)">(sem etiqueta de setor — roda por precaução)</em>' : ''}</span>
+              </label>`;
+            let html = dentro.map(x => linha(x, true)).join('');
+            if (fora.length) {
+              html += `<details style="margin-top:10px;grid-column:1/-1">
+                <summary style="cursor:pointer;font-size:13px;color:var(--texto-fraco)">Fora do perfil deste cliente (${fora.length}) — disponíveis, desmarcadas</summary>
+                <div class="aud-regras" style="margin-top:6px">${fora.map(x => linha(x, false)).join('')}</div>
+              </details>`;
+            }
+            return html;
+          })()}
         </div>
         <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:14px">
           <button class="btn btn-primary" id="btn-rodar">Rodar auditorias</button>
@@ -12201,6 +13848,30 @@ const UIAuditorias = (function () {
       <div id="aud-resultado"></div>`;
 
     container.querySelector('#btn-dossie').onclick = () => App.navegar('dossie');
+
+    // ---- salvar/trocar o setor do cliente (vale para todas as filiais da raiz) ----
+    async function salvarSetorGrupo(setor) {
+      const raiz = Utils.raizCNPJ(ativo.cnpj);
+      const todos = await Clientes.listar();
+      for (const c of todos) {
+        if (Utils.raizCNPJ(c.cnpj) === raiz) await Clientes.salvar({ cnpj: c.cnpj, setor });
+      }
+      await Clientes.definirAtivo(ativo.cnpj);   // recarrega o registro ativo com o setor novo
+    }
+    const btnSetor = container.querySelector('#aud-setor-salvar');
+    if (btnSetor) btnSetor.onclick = async () => {
+      const sel = container.querySelector('#aud-setor-sel').value;
+      const msg = container.querySelector('#aud-setor-msg');
+      if (!sel) { if (msg) msg.textContent = 'escolha um setor'; return; }
+      await salvarSetorGrupo(sel);
+      render(container);
+    };
+    const btnTrocar = container.querySelector('#aud-setor-trocar');
+    if (btnTrocar) btnTrocar.onclick = async () => {
+      if (!confirm('Trocar o setor recalcula quais regras rodam por padrão. Continuar?')) return;
+      await salvarSetorGrupo('');
+      render(container);
+    };
     container.querySelector('#btn-rodar').onclick = () => rodar(container, ativo);
     container.querySelector('#btn-inventario-top').onclick = abrirInventario;
 
@@ -12222,6 +13893,17 @@ const UIAuditorias = (function () {
     const btn = container.querySelector('#btn-rodar');
     const regras = regrasSelecionadas(container);
     if (regras.length === 0) { alert('Selecione ao menos uma regra.'); return; }
+
+    // avisa NO MOMENTO DE RODAR quando o banco tem menos anos do que o disco.
+    // O banner já mostra isso na tela, mas quem clica direto no botão merece
+    // o alerta na cara: o número que vai sair na tela não é do histórico inteiro.
+    const esc = await escopoDaAuditoria(await Clientes.cnpjsAtivos());
+    if (esc.faltando.length && !confirm(
+      `Esta rodada vai avaliar só os anos ${esc.carregados.join(', ') || '(nenhum)'}.\n\n`
+      + `Os anos ${esc.faltando.join(', ')} estão salvos no disco mas NÃO estão carregados no navegador, `
+      + `então não entram no cálculo e o total vai sair menor que o do histórico completo.\n\n`
+      + `Os achados desses anos, de rodadas anteriores, são preservados.\n\n`
+      + `Rodar assim mesmo?`)) return;
 
     btn.disabled = true; btn.textContent = 'Rodando…';
     const prog = container.querySelector('#aud-prog');
@@ -12286,12 +13968,29 @@ const UIAuditorias = (function () {
       },
     };
     const PADRAO = { tipo: 'tts_cervejaria', inicio: '2021-01', fim: '2026-02' };  // vigência confirmada até 04/02/2026 (mês final 2026-02); editável na tela
+    // O padrão SEM configuração era tts_cervejaria para QUALQUER cliente — um
+    // supermercado novo nascia calibrado pelo regime das cervejarias de MG,
+    // silenciosamente. Agora o padrão deriva do PERFIL: cervejaria/MG (ou
+    // cliente ainda sem setor, por compatibilidade) mantém o TTS; qualquer
+    // outro setor nasce SEM regime (auditoria genérica).
+    function _padraoDe(cnpj) {
+      try {
+        const at = window.Clientes && Clientes.ativo && Clientes.ativo();
+        if (at && Utils.raizCNPJ(at.cnpj) === Utils.raizCNPJ(cnpj || '')) {
+          if (!at.setor) return PADRAO;                                       // sem setor: comportamento antigo
+          if (at.setor === 'cervejaria' && (at.uf || 'MG').toUpperCase() === 'MG') return PADRAO;
+          return { tipo: '', inicio: '', fim: '' };                           // outro setor: sem regime
+        }
+      } catch (e) {}
+      return PADRAO;   // sem contexto para decidir: não muda o comportamento antigo
+    }
     function obter(cnpj) {
       try {
         const raw = localStorage.getItem(KEY(cnpj));
         if (raw) { const o = JSON.parse(raw); return { tipo: o.tipo || '', inicio: o.inicio || '', fim: o.fim || '' }; }
       } catch (e) {}
-      return { tipo: PADRAO.tipo, inicio: PADRAO.inicio, fim: PADRAO.fim };
+      const pd = _padraoDe(cnpj);
+      return { tipo: pd.tipo, inicio: pd.inicio, fim: pd.fim };
     }
     function salvar(cnpj, tipo, inicio, fim) {
       if (!cnpj) return false;
@@ -12549,8 +14248,10 @@ const UIAuditorias = (function () {
       risco: M.estadual.risco + M.federal.risco, riscoC: M.estadual.riscoC + M.federal.riscoC,
       erro: M.estadual.erro + M.federal.erro, n: M.estadual.n + M.federal.n };
     const falt = window.Selic ? Selic.faltantesAte() : [];
+    const diagSelic = window.Selic ? Selic.diagnostico() : { ok: true };
     const notaSelic = `<p style="font-size:11.5px;color:var(--texto-fraco);margin:6px 0 0">📈 Corrigido pela Selic acumulada (regra RFB: soma das taxas do mês seguinte à competência + 1% no mês atual). <strong>Créditos estaduais NÃO corrigem</strong>: o aproveitamento escritural de ICMS é pelo valor nominal (RICMS/MG, art. 67, § 2º). Consolidados/sem competência mensal também não.</p>`
-      + (falt.length ? `<p style="font-size:11.5px;color:#b26a00;margin:4px 0 0">⚠️ A tabela Selic está sem taxa em: ${falt.join(', ')} — inclua no editor para a correção ficar completa.</p>` : '');
+      + (!diagSelic.ok ? `<p style="font-size:12px;color:#b26a00;margin:4px 0 0;font-weight:600">⚠️ Tabela Selic atualizada até ${diagSelic.ultima || '?'} — os valores corrigidos estão SUBESTIMADOS em ${diagSelic.defasagemMeses} mês(es). Clique em "📈 Tabela Selic" e complete os meses que faltam (ou deixe um selic_extra.csv na pasta de trabalho: linhas AAAA-MM;taxa).</p>` : '')
+      + (falt.length && diagSelic.ok ? `<p style="font-size:11.5px;color:#b26a00;margin:4px 0 0">⚠️ A tabela Selic está sem taxa em: ${falt.join(', ')} — inclua no editor para a correção ficar completa.</p>` : '');
     let condTot = 0, condTotC = 0;
     for (const a of ativos) if (a.condicionado && a.natureza === 'credito') { condTot += Number(a.valor) || 0; condTotC += corrigidoDe(a); }
     const notaCond = condTot > 0
@@ -14526,7 +16227,52 @@ window.UIDossiePrograma = UIDossiePrograma;
     })], resumo: 'tese condicionada quantificada (ver Radar de teses no laudo)' };
   }
 
+  function fed1067(ctx, idAud, api) {
+    const M = ctx.contrib || {};
+    const linhas = [...(M.m210 || []), ...(M.m610 || [])];
+    if (!linhas.length) return { achados: [], resumo: 'EFD-Contribuições sem M210/M610 no acervo (importe a EFD-Contribuições do período)', status: 'sem_dados' };
+    const porPer = {};
+    for (const r of linhas) {
+      const d = r.dados || {};
+      const isPis = r.registro === 'M210';
+      const aliq = n(isPis ? d.ALIQ_PIS : d.ALIQ_COFINS);
+      const aliqQ = n(isPis ? d.ALIQ_PIS_QUANT : d.ALIQ_COFINS_QUANT);
+      if (!(aliq > 0) || aliqQ > 0) continue;                    // só linhas ad valorem — alíquota específica por unidade não tem base a excluir
+      const bc = n(d.VL_BC_CONT_AJUS) || n(d.VL_BC_CONT);
+      const cont = n(d.VL_CONT_PER) || n(d.VL_CONT_APUR);
+      if (!(bc > 0) || !(cont > 0)) continue;
+      const p = (porPer[r.periodo] = porPer[r.periodo] || { bcPis: 0, bcCof: 0, cont: 0 });
+      if (isPis) p.bcPis += bc; else p.bcCof += bc;
+      p.cont += cont;
+    }
+    const achados = []; let total = 0; let baseTot = 0;
+    const st1067 = (window.TesesRadar && TesesRadar.LISTA.find(t => t.id === 'TEMA-1067')) || null;
+    for (const per of Object.keys(porPer).sort()) {
+      const p = porPer[per];
+      const B = Math.max(p.bcPis, p.bcCof);                      // PIS e COFINS compartilham a base; usa a maior escriturada
+      if (!(B > 0) || !(p.cont > 0)) continue;
+      const a = p.cont / B;                                      // alíquota conjunta efetiva ad valorem do período
+      const cred = p.cont * a / (1 + a);                         // exclusão "por dentro": D' = a·(B−D')  →  crédito = D·a/(1+a)
+      if (cred < 50) continue;
+      total += cred; baseTot += B;
+      achados.push(api.novoAchado(ctx.cnpj, idAud, 'fed_tema1067', {
+        periodo: per, natureza: 'credito', severidade: api.sev(cred), condicionado: true,
+        titulo: `⚖ CONDICIONADO (Tema 1067/STF): PIS/COFINS sobre a própria base — ${per}: R$ ${Math.round(cred).toLocaleString('pt-BR')}`,
+        descricao: `Base ad valorem do período R$ ${Math.round(B).toLocaleString('pt-BR')}; contribuições apuradas R$ ${Math.round(p.cont).toLocaleString('pt-BR')} (alíquota conjunta efetiva ${(a * 100).toFixed(2)}%). Excluindo as contribuições da própria base (cálculo por dentro), o indébito do período é R$ ${Math.round(cred).toLocaleString('pt-BR')}. Linhas com alíquota específica por unidade (bebidas frias por litro) ficam fora — não têm base ad valorem a expurgar. CONDICIONADO ao julgamento do Tema 1067.`,
+        valor: cred,
+        base_legal: 'STF, RE 1.233.096 (Tema 1067) — repercussão geral 18/10/2019, pendente; CF, art. 195, I, b; Leis 10.637/02 e 10.833/03.',
+        referencias: [{ base_ad_valorem: Math.round(B), contribuicoes: Math.round(p.cont), aliquota_efetiva_pct: +(a * 100).toFixed(3) }],
+      }));
+    }
+    if (total < PISO) return { achados: [], resumo: 'valor da tese imaterial no acervo importado' };
+    if (achados.length && st1067) {
+      achados[achados.length - 1].descricao += ` Status verificado em ${TesesRadar.VERIFICADO}: ${st1067.status} Recomendação: ${st1067.recomendacao}`;
+    }
+    return { achados, resumo: `tese condicionada quantificada: R$ ${Math.round(total).toLocaleString('pt-BR')} em ${achados.length} períodos (base ad valorem acumulada R$ ${Math.round(baseTot).toLocaleString('pt-BR')})` };
+  }
+
   const REGRAS = [
+    { meta: { id: 'FED-1067-1', tipo: 'fed_tema1067', nome: 'Tema 1067/STF: PIS/COFINS sobre a própria base (condicionado)', fontes: ['efd_staging'] }, fn: fed1067 },
     { meta: { id: 'FED-843-1', tipo: 'fed_tema843', nome: 'Tema 843/STF: PIS/COFINS sobre o crédito presumido (condicionado)', fontes: ['rev_xml_itens', 'efd_staging'] }, fn: fed843 },
     { meta: { id: 'MG-DEV-1', tipo: 'mg_devolucao', nome: 'Devoluções de venda: ICMS próprio, ST (E210 × C190) e volume', fontes: ['efd_staging', 'rev_itens'] }, fn: mgDev1 },
     { meta: { id: 'FED-DEV-1', tipo: 'fed_devolucao', nome: 'Devoluções de venda × EFD-Contribuições (crédito art. 3º, VIII)', fontes: ['rev_itens'] }, fn: fedDev1 },
@@ -14566,7 +16312,7 @@ const App = (function () {
   // A linha VERSAO_APP abaixo é atualizada automaticamente pelo
   // publicar-revisor.command (lê o versao.txt). Não editar na mão.
   // ------------------------------------------------------------------
-  const VERSAO_APP = '3.19.5';
+  const VERSAO_APP = '3.25.1';
   function cmpVersao(a, b) {
     const pa = String(a).split('.').map(n => parseInt(n, 10) || 0);
     const pb = String(b).split('.').map(n => parseInt(n, 10) || 0);
@@ -14602,6 +16348,42 @@ const App = (function () {
     document.body.appendChild(b);
     document.getElementById('btn-recarregar-versao').onclick = () => location.reload(true);
     document.getElementById('bv-fechar').onclick = () => b.remove();
+  }
+
+  // ------------------------------------------------------------------
+  // MODO NUVEM — avisos de trabalho não devolvido
+  // Ao fechar a aba não dá para devolver (o beforeunload não espera promessa),
+  // então o app faz duas coisas: avisa antes de sair e, na abertura seguinte,
+  // mostra o que ficou pendente. É a autorrecuperação do SintegraView: o
+  // trabalho nunca se perde, só espera a próxima devolução.
+  // ------------------------------------------------------------------
+  async function vigiarPendenciasNuvem() {
+    try {
+      if (!window.Armazenamento || !Armazenamento.modoNuvem || !Armazenamento.modoNuvem()) return;
+
+      window.addEventListener('beforeunload', (ev) => {
+        if (!Armazenamento.haPendenciaLocal()) return;
+        ev.preventDefault();
+        ev.returnValue = '';   // o Chrome mostra o texto padrão dele
+      });
+
+      const pend = await Armazenamento.clientesPendentes();
+      if (pend.length) mostrarBannerNuvem(pend);
+    } catch (e) { /* modo nuvem é opcional: nunca derruba o boot */ }
+  }
+
+  function mostrarBannerNuvem(pend) {
+    if (document.getElementById('banner-nuvem')) return;
+    const total = pend.reduce((s, p) => s + p.pendentes, 0);
+    const b = document.createElement('div');
+    b.id = 'banner-nuvem';
+    b.className = 'banner-nuvem';
+    b.innerHTML = `<span>☁️ <b>${total} alteração(ões)</b> em ${pend.length} cliente(s) ainda não foram devolvidas para a nuvem.</span>`
+      + `<button id="bn-ir">Abrir Backup / Pasta</button>`
+      + `<span class="bv-x" id="bn-fechar" title="Fechar">✕</span>`;
+    document.body.appendChild(b);
+    document.getElementById('bn-ir').onclick = () => { b.remove(); navegar('backup'); };
+    document.getElementById('bn-fechar').onclick = () => b.remove();
   }
 
   // Mapa de telas → função de render
@@ -14732,6 +16514,9 @@ const App = (function () {
     navegar('inicio');
 
     checarVersao();
+    vigiarPendenciasNuvem();
+    try { if (window.Selic && Selic.sincronizarConfig) await Selic.sincronizarConfig(); } catch (e) {}
+    try { if (Armazenamento.carregarSelicExtra) Armazenamento.carregarSelicExtra(); } catch (e) {}
 
     console.log('Revisor Fiscal Prime iniciado.');
   }
@@ -14849,6 +16634,7 @@ const App = (function () {
 
   return {
     iniciar, navegar, recarregarTelaAtual, atualizarSeletor,
+    versao: () => VERSAO_APP,
   };
 })();
 
