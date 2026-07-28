@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 64 64%22%3E%3Ccircle cx=%2232%22 cy=%2232%22 r=%2230%22 fill=%22%2316365B%22/%3E%3Crect x=%2215%22 y=%2236%22 width=%227%22 height=%2213%22 rx=%221.5%22 fill=%22%23fff%22/%3E%3Crect x=%2226%22 y=%2228%22 width=%227%22 height=%2221%22 rx=%221.5%22 fill=%22%23fff%22/%3E%3Crect x=%2237%22 y=%2220%22 width=%227%22 height=%2229%22 rx=%221.5%22 fill=%22%23fff%22/%3E%3Cpath d=%22M41 17 L50 8 M50 8 h-8 M50 8 v8%22 stroke=%22%23FF6B35%22 stroke-width=%224.5%22 stroke-linecap=%22round%22 fill=%22none%22/%3E%3C/svg%3E">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Revisor Fiscal Prime v3.34.0</title>
+<title>Revisor Fiscal Prime v3.35.0</title>
 <!-- SheetJS para exportação Excel (carregado de CDN; funciona offline depois de cacheado) -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <!-- JSZip para ler lotes de XML em .zip -->
@@ -1038,7 +1038,7 @@ h1, h2, h3, .stat-num, .inicio-hero h1, .etapa-header h2, .card h3, .inicio-card
         <span class="brand-l2"><b>PRIME</b></span>
       </div>
     </div>
-    <span class="chip-ver" id="chip-versao">v3.34.0 · build 2026-07-27 23:15 · MG · multi-filial</span>
+    <span class="chip-ver" id="chip-versao">v3.35.0 · build 2026-07-28 00:02 · MG · multi-filial</span>
   </div>
   <div id="seletor-cliente"></div>
   <nav id="nav-principal"></nav>
@@ -1047,7 +1047,7 @@ h1, h2, h3, .stat-num, .inicio-hero h1, .etapa-header h2, .card h3, .inicio-card
 <main id="conteudo"></main>
 
 <footer class="app-footer">
-  Revisor Fiscal Prime · Prime Consultoria · Uso interno · v3.34.0 · Build 2026-07-27 23:15
+  Revisor Fiscal Prime · Prime Consultoria · Uso interno · v3.35.0 · Build 2026-07-28 00:02
 </footer>
 
 <script>
@@ -3743,6 +3743,74 @@ const Armazenamento = (function () {
     return { removidos, bytes };
   }
 
+  // ==================================================================
+  // LIBERAR ESPAÇO — apagar a cópia local de um cliente, mantendo a nuvem
+  //
+  // A cópia local só cresce: cada cliente já sincronizado ocupa disco sem
+  // necessidade enquanto você não o está auditando. Liberar apaga a pasta
+  // local (e o que está carregado no navegador), MAS o cliente continua no
+  // cadastro e na nuvem: ao selecioná-lo de novo, o app baixa tudo outra vez.
+  //
+  // TRAVA: só libera quem está com TUDO DEVOLVIDO. Se houver um único arquivo
+  // pendente, aquele dado existe SÓ na cópia local — apagar seria perdê-lo.
+  // Esta função se recusa, e quem chama precisa devolver antes.
+  // ==================================================================
+
+  /** Quanto um cliente ocupa na cópia local e se está seguro para liberar. */
+  async function espacoClienteLocal(cnpj) {
+    const base = { cnpj, arquivos: 0, bytes: 0, pendentes: 0, existe: false, seguro: false };
+    if (!modoNuvem()) return base;
+    const dir = await pastaDoClienteEm(_local, cnpj, false).catch(() => null);
+    if (!dir) return base;
+    base.existe = true;
+    try {
+      for await (const [nome, h] of dir.entries()) {
+        if (h.kind !== 'file') continue;
+        try { const f = await h.getFile(); base.arquivos++; base.bytes += f.size; } catch (e) {}
+      }
+      const meta = await _Nuvem().lerMeta(dir);
+      const inv = await _Nuvem().inventario(dir);
+      base.pendentes = _Nuvem().contarPendentes(inv, meta);
+    } catch (e) { return base; }
+    base.seguro = base.pendentes === 0;
+    return base;
+  }
+
+  /**
+   * Libera a cópia local de um cliente. Não toca na nuvem nem no cadastro.
+   * @param {object} opts  { forcar } — só para quem aceitou perder o pendente
+   */
+  async function liberarClienteLocal(cnpj, opts) {
+    opts = opts || {};
+    if (!modoNuvem()) return { ok: false, motivo: 'sem-modo-nuvem' };
+    const info = await espacoClienteLocal(cnpj);
+    if (!info.existe) return { ok: true, jaLiberado: true, bytes: 0 };
+    if (info.pendentes > 0 && !opts.forcar) {
+      return { ok: false, motivo: 'pendente', pendentes: info.pendentes,
+        avisos: [`Este cliente tem ${info.pendentes} arquivo(s) ainda não devolvidos. `
+          + `Esse dado existe SÓ na cópia local: liberar agora o perderia. Devolva antes.`] };
+    }
+    if (!(await garantirPermissao(_local, 'readwrite'))) return { ok: false, motivo: 'sem-permissao' };
+
+    // apaga a pasta do cliente na cópia local
+    const nome = (await pastaDoClienteEm(_local, cnpj, false).catch(() => null) || {}).name;
+    try {
+      if (nome) await _local.removeEntry(nome, { recursive: true });
+    } catch (e) {
+      return { ok: false, motivo: 'falha-remocao', avisos: [`Não deu para apagar a pasta local: ${(e && e.message) || e}`] };
+    }
+
+    // e descarrega o que está no navegador (o cadastro em rev_clientes fica,
+    // então o cliente continua aparecendo no seletor)
+    let registros = 0;
+    try { registros = await DB.limparCliente(cnpj); } catch (e) {}
+    _abertos.delete(cnpj);
+    try { await DB.registrarLog(cnpj, 'info', 'Cópia local liberada',
+      `${info.arquivos} arquivo(s), ${(info.bytes / 1048576).toFixed(1)} MB. `
+      + `O banco continua na nuvem; selecionar o cliente baixa de novo.`); } catch (e) {}
+    return { ok: true, bytes: info.bytes, arquivos: info.arquivos, registros };
+  }
+
   /** Estado do modo nuvem para um cliente (só leitura, não altera nada). */
   async function estadoNuvemCliente(cnpj) {
     if (!modoNuvem()) return { modo: 'direto' };
@@ -4044,6 +4112,7 @@ const Armazenamento = (function () {
     dispositivo, definirDispositivo,
     entrarCliente, devolverCliente, estadoNuvemCliente, haPendenciaLocal, carregarSelicExtra,
     resumoPastas, listarConflitos, removerConflitos, raizesColidem: _raizesColidem, invalidarSyncLocal,
+    espacoClienteLocal, liberarClienteLocal,
     saudeHandle,
     clientesPendentes, devolverTodosPendentes, liberarMarcadorCliente,
     salvarCliente, salvarTodos,
@@ -10973,7 +11042,7 @@ const UIBackup = (function () {
     // modo nuvem: nome do dispositivo, estado do cliente ativo e pendências gerais
     const modoNuvem = !!estPasta.modoNuvem;
     let nomeDispositivo = null, estNuvem = null, pendentes = [];
-    let resumoP = null, conflitos = [], colisao = null;
+    let resumoP = null, conflitos = [], colisao = null, espacos = [];
     if (suportado) {
       try { nomeDispositivo = await Armazenamento.dispositivo(); } catch (e) {}
       if (modoNuvem) {
@@ -10981,6 +11050,12 @@ const UIBackup = (function () {
         try { pendentes = await Armazenamento.clientesPendentes(); } catch (e) {}
         try { resumoP = await Armazenamento.resumoPastas(); } catch (e) {}
         try { colisao = await Armazenamento.raizesColidem(); } catch (e) {}
+        try {
+          for (const c of clientes) {
+            const e = await Armazenamento.espacoClienteLocal(c.cnpj);
+            if (e.existe) espacos.push({ ...e, razao: c.razao_social || c.cnpj });
+          }
+        } catch (e) {}
         if (ativo) { try { conflitos = await Armazenamento.listarConflitos(ativo.cnpj); } catch (e) {} }
       }
     }
@@ -11226,6 +11301,40 @@ const UIBackup = (function () {
           <div style="margin-top:.8rem;font-size:.88rem;color:var(--texto-fraco,#667)">
             Pendentes de devolução: ${pendentes.map(p => `<span class="mono">${Utils.escapeHtml(p.pasta)}</span> (${p.pendentes})`).join(', ')}
           </div>` : ''}
+      </div>` : ''}
+
+      ${modoNuvem && espacos.length ? `
+      <div class="card">
+        <h3>🧹 Liberar espaço da cópia local</h3>
+        <p style="margin:.2rem 0 .7rem;color:var(--texto-fraco,#667);font-size:.9rem">
+          Apaga a cópia local dos clientes que você não está auditando. O banco continua
+          <strong>inteiro na nuvem</strong> e o cliente continua na lista: ao selecioná-lo de novo,
+          o app baixa tudo outra vez. Só libera quem está com <strong>tudo devolvido</strong> —
+          quem tiver pendência aparece bloqueado, porque esse dado só existe aqui.
+        </p>
+        <table class="tabela" style="margin-bottom:.7rem">
+          <thead><tr><th style="width:2rem"></th><th>Cliente</th><th style="text-align:right">Ocupa</th><th>Situação</th></tr></thead>
+          <tbody>
+            ${espacos.map(e => `
+              <tr>
+                <td><input type="checkbox" class="lib-cli" data-cnpj="${e.cnpj}" data-bytes="${e.bytes}" ${e.seguro ? '' : 'disabled'}></td>
+                <td>${Utils.escapeHtml(e.razao)}<br><span class="mono" style="font-size:.8rem;color:var(--texto-fraco,#667)">${Utils.formatarCNPJ(e.cnpj)}</span></td>
+                <td style="text-align:right">${(e.bytes / 1048576).toFixed(1)} MB<br><span style="font-size:.8rem;color:var(--texto-fraco,#667)">${e.arquivos} arq.</span></td>
+                <td>${e.seguro
+                    ? '<span style="color:var(--ok,#1b8a3a)">tudo devolvido</span>'
+                    : `<span style="color:var(--aviso,#c47f00)">${e.pendentes} pendente(s) — devolva antes</span>`}</td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center">
+          <button class="btn btn-primario" id="bk-liberar">Liberar selecionados</button>
+          <span id="bk-liberar-total" style="font-size:.88rem;color:var(--texto-fraco,#667)">nenhum selecionado</span>
+        </div>
+        <p style="margin:.6rem 0 0;font-size:.82rem;color:var(--texto-fraco,#667)">
+          Marcar a <strong>matriz</strong> marca todas as filiais do grupo automaticamente.
+          Total na cópia local: <strong>${(espacos.reduce((a, e) => a + e.bytes, 0) / 1048576).toFixed(1)} MB</strong>.
+        </p>
+        <div id="bk-liberar-status" style="margin-top:.6rem;font-size:.9rem"></div>
       </div>` : ''}
 
       ${conectada ? `
@@ -11537,6 +11646,58 @@ const UIBackup = (function () {
         if (falhos.length || comAviso.length) alert(txt);
         render(container);
       } catch (e) { msg(statusNuvemEl, 'Erro: ' + e.message, 'erro'); }
+    };
+
+    // ---- liberar espaço da cópia local ----
+    const caixas = [...container.querySelectorAll('.lib-cli')];
+    const totalEl = container.querySelector('#bk-liberar-total');
+    const atualizarTotal = () => {
+      const sel = caixas.filter(c => c.checked && !c.disabled);
+      const mb = sel.reduce((a, c) => a + Number(c.dataset.bytes || 0), 0) / 1048576;
+      if (totalEl) totalEl.textContent = sel.length
+        ? `${sel.length} cliente(s) · ${mb.toFixed(1)} MB a liberar`
+        : 'nenhum selecionado';
+    };
+    for (const cx of caixas) {
+      cx.onchange = () => {
+        // marcar a MATRIZ (final 0001) marca o grupo inteiro: as filiais
+        // compartilham a raiz do CNPJ e quase sempre se auditam juntas
+        const cnpj = cx.dataset.cnpj;
+        if (cx.checked && cnpj.slice(8, 12) === '0001') {
+          const raiz = Utils.raizCNPJ(cnpj);
+          for (const outra of caixas) {
+            if (!outra.disabled && Utils.raizCNPJ(outra.dataset.cnpj) === raiz) outra.checked = true;
+          }
+        }
+        atualizarTotal();
+      };
+    }
+    atualizarTotal();
+
+    const btnLiberarEspaco = container.querySelector('#bk-liberar');
+    if (btnLiberarEspaco) btnLiberarEspaco.onclick = async () => {
+      const sel = caixas.filter(c => c.checked && !c.disabled).map(c => c.dataset.cnpj);
+      const st = container.querySelector('#bk-liberar-status');
+      if (!sel.length) { msg(st, 'Marque ao menos um cliente.', 'aviso'); return; }
+      const mb = (caixas.filter(c => c.checked && !c.disabled)
+        .reduce((a, c) => a + Number(c.dataset.bytes || 0), 0) / 1048576).toFixed(1);
+      if (!confirm(`Liberar a cópia local de ${sel.length} cliente(s)? (${mb} MB)\n\n`
+        + `O banco continua INTEIRO na nuvem e o cliente continua na lista. Ao selecioná-lo de novo, `
+        + `o app baixa tudo outra vez (pode demorar, conforme o tamanho).\n\n`
+        + `Só entram clientes com tudo devolvido.`)) return;
+
+      let bytes = 0, ok = 0; const falhas = [];
+      for (const cnpj of sel) {
+        const r = await Armazenamento.liberarClienteLocal(cnpj);
+        if (r.ok) { ok++; bytes += r.bytes || 0; }
+        else falhas.push(`${Utils.formatarCNPJ(cnpj)}: ${(r.avisos && r.avisos[0]) || r.motivo}`);
+      }
+      let txt = `${ok} cliente(s) liberados · ${(bytes / 1048576).toFixed(1)} MB de disco recuperados.`;
+      if (falhas.length) txt += `\n\nNão liberados:\n` + falhas.map(f => '• ' + f).join('\n');
+      msg(st, txt, falhas.length ? 'aviso' : 'ok');
+      if (falhas.length) alert(txt);
+      await atualizarSeletorGlobal();
+      render(container);
     };
 
     // ---- remover os arquivos de conflito antigos ----
@@ -17392,7 +17553,7 @@ const App = (function () {
   // A linha VERSAO_APP abaixo é atualizada automaticamente pelo
   // publicar-revisor.command (lê o versao.txt). Não editar na mão.
   // ------------------------------------------------------------------
-  const VERSAO_APP = '3.34.0';
+  const VERSAO_APP = '3.35.0';
   function cmpVersao(a, b) {
     const pa = String(a).split('.').map(n => parseInt(n, 10) || 0);
     const pb = String(b).split('.').map(n => parseInt(n, 10) || 0);
